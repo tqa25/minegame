@@ -31,6 +31,8 @@ const blockTypes = {
 let selectedBlock = "grass";
 let selectedCell = null;
 let hopVelocity = 0;
+let attackTimer = 0;
+let keyboardRun = false;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87b6bd);
@@ -74,21 +76,99 @@ const selector = new THREE.Mesh(
 selector.visible = false;
 scene.add(selector);
 
-const player = new THREE.Group();
-const body = new THREE.Mesh(
-  new THREE.CapsuleGeometry(0.25, 0.46, 4, 8),
-  new THREE.MeshStandardMaterial({ color: 0x355c7d, roughness: 0.65 }),
-);
-body.castShadow = true;
-body.position.y = 0.52;
-const hat = new THREE.Mesh(
-  new THREE.BoxGeometry(0.62, 0.18, 0.62),
-  new THREE.MeshStandardMaterial({ color: 0xf0c95a, roughness: 0.7 }),
-);
-hat.castShadow = true;
-hat.position.y = 1.03;
-player.add(body, hat);
+const player = createBlockCharacter();
 scene.add(player);
+
+function makeCharacterMaterial(color) {
+  return new THREE.MeshStandardMaterial({ color, roughness: 0.72 });
+}
+
+function makeBoxPart(width, height, depth, color, yOffset = 0) {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(width, height, depth),
+    makeCharacterMaterial(color),
+  );
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  mesh.position.y = yOffset;
+  return mesh;
+}
+
+function makePivotedLimb(width, height, depth, color, anchorY) {
+  const pivot = new THREE.Group();
+  pivot.position.y = anchorY;
+  const limb = makeBoxPart(width, height, depth, color, -height / 2);
+  pivot.add(limb);
+  return pivot;
+}
+
+function createBlockCharacter() {
+  const rig = new THREE.Group();
+  rig.userData.parts = {};
+
+  const torso = makeBoxPart(0.58, 0.78, 0.3, 0x2f69b1, 1.05);
+  const head = new THREE.Group();
+  const headBlock = makeBoxPart(0.5, 0.5, 0.5, 0xd6a06f);
+  const hair = makeBoxPart(0.54, 0.14, 0.54, 0x3b2518, 0.32);
+  const face = makeBoxPart(0.34, 0.12, 0.02, 0x2b1d17, 0.03);
+  head.position.y = 1.72;
+  face.position.z = -0.261;
+  head.add(headBlock, hair, face);
+  const leftArm = makePivotedLimb(0.22, 0.72, 0.24, 0xd6a06f, 1.39);
+  const rightArm = makePivotedLimb(0.22, 0.72, 0.24, 0xd6a06f, 1.39);
+  const leftLeg = makePivotedLimb(0.24, 0.76, 0.24, 0x3156a4, 0.68);
+  const rightLeg = makePivotedLimb(0.24, 0.76, 0.24, 0x3156a4, 0.68);
+
+  leftArm.position.x = -0.44;
+  rightArm.position.x = 0.44;
+  leftLeg.position.x = -0.17;
+  rightLeg.position.x = 0.17;
+
+  const shirtBand = makeBoxPart(0.62, 0.08, 0.32, 0xf0c95a, 1.25);
+
+  rig.add(torso, head, shirtBand, leftArm, rightArm, leftLeg, rightLeg);
+  rig.scale.setScalar(0.72);
+  rig.userData.parts = { head, torso, leftArm, rightArm, leftLeg, rightLeg };
+  return rig;
+}
+
+function triggerAttack() {
+  attackTimer = 0.34;
+}
+
+function animateCharacter(delta, baseY, movementStrength, isRunning) {
+  const parts = player.userData.parts;
+  if (!parts) return;
+
+  attackTimer = Math.max(0, attackTimer - delta);
+  const t = clock.elapsedTime;
+  const moving = movementStrength > 0.05;
+  const cycleSpeed = moving ? (isRunning ? 13.5 : 8.5) : 2.2;
+  const swing = Math.sin(t * cycleSpeed) * (moving ? (isRunning ? 0.92 : 0.58) : 0.08);
+  const bob = moving ? Math.abs(Math.sin(t * cycleSpeed)) * (isRunning ? 0.08 : 0.04) : Math.sin(t * 2.2) * 0.015;
+
+  player.position.y = baseY + bob;
+  parts.leftArm.rotation.x = swing;
+  parts.rightArm.rotation.x = -swing;
+  parts.leftLeg.rotation.x = -swing;
+  parts.rightLeg.rotation.x = swing;
+  parts.leftArm.rotation.z = 0.05;
+  parts.rightArm.rotation.z = -0.05;
+  parts.head.rotation.y = Math.sin(t * 2.7) * (moving ? 0.07 : 0.12);
+  parts.head.rotation.x = moving ? Math.sin(t * cycleSpeed) * 0.035 : Math.sin(t * 1.9) * 0.04;
+  parts.torso.rotation.x = moving ? Math.sin(t * cycleSpeed) * 0.025 : 0;
+
+  if (attackTimer > 0) {
+    const progress = 1 - attackTimer / 0.34;
+    const strike = Math.sin(progress * Math.PI);
+    parts.rightArm.rotation.x = -1.95 * strike - 0.45;
+    parts.rightArm.rotation.z = -0.35 * strike;
+    parts.torso.rotation.y = -0.22 * strike;
+    parts.head.rotation.y = -0.12 * strike;
+  } else {
+    parts.torso.rotation.y *= 0.75;
+  }
+}
 
 const groundPlane = new THREE.Mesh(
   new THREE.PlaneGeometry(80, 80),
@@ -178,6 +258,7 @@ function updateSelection(clientX = window.innerWidth / 2, clientY = window.inner
 function buildSelected() {
   if (!selectedCell) updateSelection();
   if (!selectedCell) return;
+  triggerAttack();
   const { x, y, z } = selectedCell.object.userData;
   const placeY = Math.min(9, y + 1);
   addBlock(x, placeY, z, selectedBlock);
@@ -189,6 +270,7 @@ function digSelected() {
   if (!selectedCell) return;
   const mesh = selectedCell.object;
   if (mesh.userData.type === "water") return;
+  triggerAttack();
   removeBlock(mesh);
   updateSelection();
 }
@@ -209,12 +291,15 @@ function resize() {
 function updatePlayer(delta) {
   const forward = new THREE.Vector3(-1, 0, -1).normalize();
   const right = new THREE.Vector3(1, 0, -1).normalize();
+  const inputStrength = Math.min(1, moveVector.length());
+  const isRunning = keyboardRun || inputStrength > 0.78;
   const movement = new THREE.Vector3()
     .addScaledVector(forward, moveVector.y)
     .addScaledVector(right, moveVector.x);
 
   if (movement.lengthSq() > 0.001) {
-    movement.normalize().multiplyScalar(delta * 4.2);
+    const speed = isRunning ? 6.1 : 3.9;
+    movement.normalize().multiplyScalar(delta * speed * Math.max(inputStrength, 0.45));
     player.position.add(movement);
     player.position.x = THREE.MathUtils.clamp(player.position.x, -half + 1, half - 1);
     player.position.z = THREE.MathUtils.clamp(player.position.z, -half + 1, half - 1);
@@ -225,11 +310,14 @@ function updatePlayer(delta) {
   const pz = Math.round(player.position.z);
   const targetY = topHeight(px, pz) + 1;
   hopVelocity -= delta * 10;
-  player.position.y += hopVelocity * delta;
-  if (player.position.y < targetY) {
-    player.position.y = targetY;
+  let physicsY = player.userData.physicsY ?? player.position.y;
+  physicsY += hopVelocity * delta;
+  if (physicsY < targetY) {
+    physicsY = targetY;
     hopVelocity = 0;
   }
+  player.userData.physicsY = physicsY;
+  animateCharacter(delta, physicsY, inputStrength, isRunning);
 
   const target = player.position.clone();
   camera.position.lerp(new THREE.Vector3(target.x + 14, target.y + 14, target.z + 14), 0.08);
@@ -295,12 +383,14 @@ window.addEventListener("keydown", (event) => {
   if (event.key === "s" || event.key === "ArrowDown") moveVector.y = -1;
   if (event.key === "a" || event.key === "ArrowLeft") moveVector.x = -1;
   if (event.key === "d" || event.key === "ArrowRight") moveVector.x = 1;
+  if (event.key === "Shift") keyboardRun = true;
   if (event.key === " ") hopVelocity = 5;
   if (event.key === "e") buildSelected();
   if (event.key === "q") digSelected();
 });
 
 window.addEventListener("keyup", (event) => {
+  if (event.key === "Shift") keyboardRun = false;
   if (["w", "s", "ArrowUp", "ArrowDown"].includes(event.key)) moveVector.y = 0;
   if (["a", "d", "ArrowLeft", "ArrowRight"].includes(event.key)) moveVector.x = 0;
 });
@@ -319,5 +409,6 @@ resize();
 bindJoystick();
 setSelectedBlock("grass");
 player.position.set(0, topHeight(0, 0) + 1, 0);
+player.userData.physicsY = player.position.y;
 updateSelection();
 animate();
