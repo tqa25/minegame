@@ -58,7 +58,9 @@ body {
 .brand,
 .status,
 .tool,
-.action {
+.action,
+.zoom-button,
+.zoom-level {
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(16, 23, 21, 0.72);
   color: #f4f1e8;
@@ -109,6 +111,38 @@ body {
   background: #e8ca72;
   color: #19201c;
   border-color: rgba(255, 255, 255, 0.52);
+}
+
+.zoom-controls {
+  top: calc(max(12px, env(safe-area-inset-top)) + 96px);
+  right: 12px;
+  display: grid;
+  grid-template-columns: 42px 54px 42px;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+.zoom-button,
+.zoom-level {
+  height: 38px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.zoom-button {
+  line-height: 1;
+}
+
+.zoom-level {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #e8dfc9;
+  font-size: 12px;
 }
 
 .touch-layer {
@@ -162,7 +196,8 @@ body {
 }
 
 .action:active,
-.tool:active {
+.tool:active,
+.zoom-button:active {
   transform: translateY(1px);
 }
 
@@ -176,6 +211,11 @@ body {
   .tools {
     width: 420px;
     right: auto;
+  }
+
+  .zoom-controls {
+    top: calc(max(12px, env(safe-area-inset-top)) + 52px);
+    right: 20px;
   }
 
   .brand,

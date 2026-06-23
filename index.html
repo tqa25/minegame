@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#17221d" />
     <title>Minegame Iso</title>
+    <link rel="icon" href="data:," />
     <link rel="stylesheet" href="./src/styles.css" />
   </head>
   <body>
@@ -24,6 +25,12 @@
         <button class="tool" data-block="dirt" type="button">Dirt</button>
         <button class="tool" data-block="stone" type="button">Stone</button>
         <button class="tool" data-block="wood" type="button">Wood</button>
+      </section>
+
+      <section class="hud zoom-controls" aria-label="Camera zoom">
+        <button id="zoomOutBtn" class="zoom-button" type="button" aria-label="Zoom out">-</button>
+        <span id="zoomLabel" class="zoom-level">6.4</span>
+        <button id="zoomInBtn" class="zoom-button" type="button" aria-label="Zoom in">+</button>
       </section>
 
       <section class="touch-layer" aria-label="Touch controls">

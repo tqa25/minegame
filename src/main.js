@@ -8,10 +8,19 @@ const stick = document.querySelector("#stick");
 const buildBtn = document.querySelector("#buildBtn");
 const digBtn = document.querySelector("#digBtn");
 const jumpBtn = document.querySelector("#jumpBtn");
+const zoomOutBtn = document.querySelector("#zoomOutBtn");
+const zoomInBtn = document.querySelector("#zoomInBtn");
+const zoomLabel = document.querySelector("#zoomLabel");
 const toolButtons = [...document.querySelectorAll(".tool")];
 
 const worldSize = 22;
 const maxHeight = 5;
+const minCameraZoom = 5.2;
+const maxCameraZoom = 13;
+const zoomStep = 0.8;
+const maxReach = 8;
+const gravity = 18;
+const jumpImpulse = 7.4;
 const half = Math.floor(worldSize / 2);
 const moveVector = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
@@ -30,9 +39,12 @@ const blockTypes = {
 
 let selectedBlock = "grass";
 let selectedCell = null;
-let hopVelocity = 0;
+let verticalVelocity = 0;
+let isGrounded = false;
 let attackTimer = 0;
 let keyboardRun = false;
+let cameraZoom = window.innerWidth < 720 ? 6.4 : 8.8;
+const lastAimPoint = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87b6bd);
@@ -136,6 +148,12 @@ function triggerAttack() {
   attackTimer = 0.34;
 }
 
+function jump() {
+  if (!isGrounded) return;
+  verticalVelocity = jumpImpulse;
+  isGrounded = false;
+}
+
 function animateCharacter(delta, baseY, movementStrength, isRunning) {
   const parts = player.userData.parts;
   if (!parts) return;
@@ -213,8 +231,56 @@ function addBlock(x, y, z, type) {
 function removeBlock(mesh) {
   const { x, y, z } = mesh.userData;
   blocks.delete(key(x, z, y));
-  blockMeshes.splice(blockMeshes.indexOf(mesh), 1);
+  const index = blockMeshes.indexOf(mesh);
+  if (index !== -1) blockMeshes.splice(index, 1);
   mesh.removeFromParent();
+}
+
+function isLiveBlock(mesh) {
+  if (!mesh?.userData) return false;
+  const { x, y, z } = mesh.userData;
+  return blocks.get(key(x, z, y)) === mesh;
+}
+
+function isWithinReach(mesh) {
+  const playerBaseY = player.userData.physicsY ?? player.position.y;
+  const dx = mesh.position.x - player.position.x;
+  const dy = mesh.position.y - playerBaseY;
+  const dz = mesh.position.z - player.position.z;
+  return Math.hypot(dx, dy, dz) <= maxReach;
+}
+
+function clearSelection() {
+  selectedCell = null;
+  selector.visible = false;
+}
+
+function faceWorldPoint(target) {
+  const dx = target.x - player.position.x;
+  const dz = target.z - player.position.z;
+  if (Math.hypot(dx, dz) < 0.001) return;
+  player.rotation.y = Math.atan2(-dx, -dz);
+}
+
+function refreshSelectionFromScreenPoint(clientX = lastAimPoint.x, clientY = lastAimPoint.y) {
+  lastAimPoint.x = clientX;
+  lastAimPoint.y = clientY;
+  pointer.x = (clientX / window.innerWidth) * 2 - 1;
+  pointer.y = -(clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster
+    .intersectObjects(blockMeshes, false)
+    .filter((hit) => isLiveBlock(hit.object) && isWithinReach(hit.object));
+
+  selectedCell = hits[0] ?? null;
+  selector.visible = Boolean(selectedCell);
+  if (!selectedCell) return null;
+
+  const { x, y, z } = selectedCell.object.userData;
+  selector.position.set(x, y + 0.54, z);
+  heightLabel.textContent = `H: ${topHeight(x, z) + 1}`;
+  faceWorldPoint(selectedCell.object.position);
+  return selectedCell;
 }
 
 function generateWorld() {
@@ -242,50 +308,55 @@ function setSelectedBlock(type) {
   toolButtons.forEach((button) => button.classList.toggle("active", button.dataset.block === type));
 }
 
-function updateSelection(clientX = window.innerWidth / 2, clientY = window.innerHeight / 2) {
-  pointer.x = (clientX / window.innerWidth) * 2 - 1;
-  pointer.y = -(clientY / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera(pointer, camera);
-  const hits = raycaster.intersectObjects(blockMeshes, false);
-  selectedCell = hits[0] ?? null;
-  selector.visible = Boolean(selectedCell);
-  if (!selectedCell) return;
-  const { x, y, z } = selectedCell.object.userData;
-  selector.position.set(x, y + 0.54, z);
-  heightLabel.textContent = `H: ${topHeight(x, z) + 1}`;
+function updateSelection(clientX = lastAimPoint.x, clientY = lastAimPoint.y) {
+  return refreshSelectionFromScreenPoint(clientX, clientY);
 }
 
 function buildSelected() {
-  if (!selectedCell) updateSelection();
-  if (!selectedCell) return;
+  const hit = refreshSelectionFromScreenPoint();
+  if (!hit) return;
   triggerAttack();
-  const { x, y, z } = selectedCell.object.userData;
+  const { x, y, z } = hit.object.userData;
   const placeY = Math.min(9, y + 1);
   addBlock(x, placeY, z, selectedBlock);
-  updateSelection();
+  updateSelection(lastAimPoint.x, lastAimPoint.y);
 }
 
 function digSelected() {
-  if (!selectedCell) updateSelection();
-  if (!selectedCell) return;
-  const mesh = selectedCell.object;
+  const hit = refreshSelectionFromScreenPoint();
+  if (!hit) return;
+  const mesh = hit.object;
   if (mesh.userData.type === "water") return;
   triggerAttack();
   removeBlock(mesh);
-  updateSelection();
+  clearSelection();
+  updateSelection(lastAimPoint.x, lastAimPoint.y);
+}
+
+function updateZoomLabel() {
+  zoomLabel.textContent = cameraZoom.toFixed(1);
+}
+
+function applyCameraZoom() {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const aspect = width / height;
+  camera.left = -cameraZoom * aspect;
+  camera.right = cameraZoom * aspect;
+  camera.top = cameraZoom;
+  camera.bottom = -cameraZoom;
+  camera.updateProjectionMatrix();
+  updateZoomLabel();
+}
+
+function changeZoom(delta) {
+  cameraZoom = THREE.MathUtils.clamp(cameraZoom + delta, minCameraZoom, maxCameraZoom);
+  applyCameraZoom();
 }
 
 function resize() {
-  const width = window.innerWidth;
-  const height = window.innerHeight;
-  renderer.setSize(width, height, false);
-  const aspect = width / height;
-  const zoom = width < 720 ? 6.4 : 8.8;
-  camera.left = -zoom * aspect;
-  camera.right = zoom * aspect;
-  camera.top = zoom;
-  camera.bottom = -zoom;
-  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
+  applyCameraZoom();
 }
 
 function updatePlayer(delta) {
@@ -303,18 +374,22 @@ function updatePlayer(delta) {
     player.position.add(movement);
     player.position.x = THREE.MathUtils.clamp(player.position.x, -half + 1, half - 1);
     player.position.z = THREE.MathUtils.clamp(player.position.z, -half + 1, half - 1);
-    player.rotation.y = Math.atan2(movement.x, movement.z);
+    if (!selectedCell) faceWorldPoint(player.position.clone().add(movement));
   }
 
   const px = Math.round(player.position.x);
   const pz = Math.round(player.position.z);
   const targetY = topHeight(px, pz) + 1;
-  hopVelocity -= delta * 10;
   let physicsY = player.userData.physicsY ?? player.position.y;
-  physicsY += hopVelocity * delta;
-  if (physicsY < targetY) {
+  if (isGrounded && physicsY < targetY) physicsY = targetY;
+  verticalVelocity -= gravity * delta;
+  physicsY += verticalVelocity * delta;
+  if (physicsY <= targetY) {
     physicsY = targetY;
-    hopVelocity = 0;
+    verticalVelocity = 0;
+    isGrounded = true;
+  } else {
+    isGrounded = false;
   }
   player.userData.physicsY = physicsY;
   animateCharacter(delta, physicsY, inputStrength, isRunning);
@@ -322,6 +397,7 @@ function updatePlayer(delta) {
   const target = player.position.clone();
   camera.position.lerp(new THREE.Vector3(target.x + 14, target.y + 14, target.z + 14), 0.08);
   camera.lookAt(target.x, target.y, target.z);
+  if (selectedCell) refreshSelectionFromScreenPoint();
 }
 
 function animate() {
@@ -384,7 +460,7 @@ window.addEventListener("keydown", (event) => {
   if (event.key === "a" || event.key === "ArrowLeft") moveVector.x = -1;
   if (event.key === "d" || event.key === "ArrowRight") moveVector.x = 1;
   if (event.key === "Shift") keyboardRun = true;
-  if (event.key === " ") hopVelocity = 5;
+  if (event.key === " ") jump();
   if (event.key === "e") buildSelected();
   if (event.key === "q") digSelected();
 });
@@ -401,8 +477,10 @@ toolButtons.forEach((button) => {
 buildBtn.addEventListener("click", buildSelected);
 digBtn.addEventListener("click", digSelected);
 jumpBtn.addEventListener("click", () => {
-  if (hopVelocity === 0) hopVelocity = 5;
+  jump();
 });
+zoomOutBtn.addEventListener("click", () => changeZoom(zoomStep));
+zoomInBtn.addEventListener("click", () => changeZoom(-zoomStep));
 
 generateWorld();
 resize();
@@ -410,5 +488,6 @@ bindJoystick();
 setSelectedBlock("grass");
 player.position.set(0, topHeight(0, 0) + 1, 0);
 player.userData.physicsY = player.position.y;
+isGrounded = true;
 updateSelection();
 animate();
