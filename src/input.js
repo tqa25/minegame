@@ -37,12 +37,16 @@ export default class Input {
   }
 
   _onPointerMove(event) {
+    const el = event.target;
+    if (el?.closest && (el.closest("button") || el.closest("#joystick"))) return;
     for (const cb of this.pointerMoveHandlers) {
       cb(event.clientX, event.clientY);
     }
   }
 
   _onPointerDown(event) {
+    const el = event.target;
+    if (el?.closest && (el.closest("button") || el.closest("#joystick"))) return;
     for (const cb of this.pointerDownHandlers) {
       cb(event.clientX, event.clientY);
     }
