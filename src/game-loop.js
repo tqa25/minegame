@@ -36,7 +36,7 @@ export default class GameLoop {
     this.character = new Character(this.world);
     this.renderer.addToScene(this.character.mesh);
     this.camera = new Camera(this.canvas, this.domElements.zoomLabel);
-    this.input = new Input();
+    this.input = new Input(document, document.querySelector("#joystick"));
     this.blockSelector = new BlockSelector(
       this.world,
       this.camera.camera,

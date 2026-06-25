@@ -240,4 +240,142 @@ describe("Input", () => {
       custom.destroy();
     });
   });
+
+  describe("joystick", () => {
+    let joyEl;
+    let stick;
+    let joyInput;
+
+    beforeEach(() => {
+      joyEl = document.createElement("div");
+      joyEl.id = "joystick";
+      joyEl.style.width = "120px";
+      joyEl.style.height = "120px";
+      stick = document.createElement("div");
+      stick.id = "stick";
+      joyEl.appendChild(stick);
+      document.body.appendChild(joyEl);
+      vi.spyOn(joyEl, "getBoundingClientRect").mockReturnValue({
+        left: 10,
+        top: 10,
+        width: 120,
+        height: 120,
+        right: 130,
+        bottom: 130,
+      });
+      Object.defineProperty(joyEl, "clientWidth", { value: 120 });
+      joyEl.setPointerCapture = vi.fn();
+      joyInput = new Input(document, joyEl);
+    });
+
+    afterEach(() => {
+      joyInput.destroy();
+      document.body.removeChild(joyEl);
+    });
+
+    it("captures pointer on pointerdown", () => {
+      const evt = new PointerEvent("pointerdown", {
+        pointerId: 7,
+        clientX: 50,
+        clientY: 50,
+      });
+      joyEl.dispatchEvent(evt);
+      expect(joyEl.setPointerCapture).toHaveBeenCalledWith(7);
+    });
+
+    it("updates moveVector on pointermove after capture", () => {
+      const down = new PointerEvent("pointerdown", {
+        pointerId: 7,
+        clientX: 70,
+        clientY: 70,
+      });
+      joyEl.dispatchEvent(down);
+      const move = new PointerEvent("pointermove", {
+        pointerId: 7,
+        clientX: 70,
+        clientY: 40,
+      });
+      joyEl.dispatchEvent(move);
+      const mv = joyInput.getMoveVector();
+      expect(mv.y).toBeGreaterThan(0);
+    });
+
+    it("resets moveVector on pointerup", () => {
+      const down = new PointerEvent("pointerdown", {
+        pointerId: 7,
+        clientX: 70,
+        clientY: 70,
+      });
+      joyEl.dispatchEvent(down);
+      const move = new PointerEvent("pointermove", {
+        pointerId: 7,
+        clientX: 70,
+        clientY: 40,
+      });
+      joyEl.dispatchEvent(move);
+      expect(joyInput.getMoveVector().y).not.toBe(0);
+      const up = new PointerEvent("pointerup", { pointerId: 7 });
+      joyEl.dispatchEvent(up);
+      expect(joyInput.getMoveVector()).toEqual({ x: 0, y: 0 });
+    });
+
+    it("resets moveVector on pointercancel", () => {
+      const down = new PointerEvent("pointerdown", {
+        pointerId: 7,
+        clientX: 70,
+        clientY: 70,
+      });
+      joyEl.dispatchEvent(down);
+      const move = new PointerEvent("pointermove", {
+        pointerId: 7,
+        clientX: 70,
+        clientY: 40,
+      });
+      joyEl.dispatchEvent(move);
+      expect(joyInput.getMoveVector().y).not.toBe(0);
+      const cancel = new PointerEvent("pointercancel", { pointerId: 7 });
+      joyEl.dispatchEvent(cancel);
+      expect(joyInput.getMoveVector()).toEqual({ x: 0, y: 0 });
+    });
+
+    it("resets stick style transform on pointerup", () => {
+      const down = new PointerEvent("pointerdown", {
+        pointerId: 7,
+        clientX: 70,
+        clientY: 70,
+      });
+      joyEl.dispatchEvent(down);
+      const up = new PointerEvent("pointerup", { pointerId: 7 });
+      joyEl.dispatchEvent(up);
+      expect(stick.style.transform).toBe("translate(0, 0)");
+    });
+
+    it("ignores pointermove from different pointerId", () => {
+      const down = new PointerEvent("pointerdown", {
+        pointerId: 7,
+        clientX: 70,
+        clientY: 70,
+      });
+      joyEl.dispatchEvent(down);
+      const move = new PointerEvent("pointermove", {
+        pointerId: 99,
+        clientX: 70,
+        clientY: 40,
+      });
+      joyEl.dispatchEvent(move);
+      expect(joyInput.getMoveVector()).toEqual({ x: 0, y: 0 });
+    });
+
+    it("destroy unbinds joystick events", () => {
+      const cb = vi.fn();
+      joyInput.destroy();
+      const evt = new PointerEvent("pointerdown", {
+        pointerId: 7,
+        clientX: 50,
+        clientY: 50,
+      });
+      joyEl.dispatchEvent(evt);
+      expect(joyEl.setPointerCapture).not.toHaveBeenCalled();
+    });
+  });
 });

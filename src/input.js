@@ -1,6 +1,7 @@
 export default class Input {
-  constructor(element = document) {
+  constructor(element = document, joystickEl = null) {
     this.element = element;
+    this.joystickEl = joystickEl;
     this.moveVector = { x: 0, y: 0 };
     this.run = false;
     this.actionHandlers = { build: [], dig: [], jump: [] };
@@ -12,11 +13,21 @@ export default class Input {
     this._onKeyUp = this._onKeyUp.bind(this);
     this._onPointerMove = this._onPointerMove.bind(this);
     this._onPointerDown = this._onPointerDown.bind(this);
+    this._onJoyDown = this._onJoyDown.bind(this);
+    this._onJoyMove = this._onJoyMove.bind(this);
+    this._onJoyEnd = this._onJoyEnd.bind(this);
 
     window.addEventListener("keydown", this._onKeyDown);
     window.addEventListener("keyup", this._onKeyUp);
     window.addEventListener("pointermove", this._onPointerMove);
     window.addEventListener("pointerdown", this._onPointerDown);
+
+    if (this.joystickEl) {
+      this.joystickEl.addEventListener("pointerdown", this._onJoyDown);
+      this.joystickEl.addEventListener("pointermove", this._onJoyMove);
+      this.joystickEl.addEventListener("pointerup", this._onJoyEnd);
+      this.joystickEl.addEventListener("pointercancel", this._onJoyEnd);
+    }
   }
 
   _onKeyDown(event) {
@@ -50,6 +61,40 @@ export default class Input {
     for (const cb of this.pointerDownHandlers) {
       cb(event.clientX, event.clientY);
     }
+  }
+
+  _onJoyDown(event) {
+    this._joyActive = event.pointerId;
+    this.joystickEl.setPointerCapture(this._joyActive);
+    const rect = this.joystickEl.getBoundingClientRect();
+    this._joyCenter = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    };
+  }
+
+  _onJoyMove(event) {
+    if (event.pointerId !== this._joyActive) return;
+    const dx = event.clientX - this._joyCenter.x;
+    const dy = event.clientY - this._joyCenter.y;
+    const radius = this.joystickEl.clientWidth * 0.34;
+    const distance = Math.min(radius, Math.hypot(dx, dy));
+    const angle = Math.atan2(dy, dx);
+    const sx = Math.cos(angle) * distance;
+    const sy = Math.sin(angle) * distance;
+    const stick = this.joystickEl.querySelector("#stick");
+    if (stick) stick.style.transform = `translate(${sx}px, ${sy}px)`;
+    this.moveVector.x = sx / radius;
+    this.moveVector.y = -sy / radius;
+  }
+
+  _onJoyEnd(event) {
+    if (event.pointerId !== this._joyActive) return;
+    this._joyActive = null;
+    const stick = this.joystickEl.querySelector("#stick");
+    if (stick) stick.style.transform = "translate(0, 0)";
+    this.moveVector.x = 0;
+    this.moveVector.y = 0;
   }
 
   _fireAction(name) {
@@ -97,6 +142,12 @@ export default class Input {
     window.removeEventListener("keyup", this._onKeyUp);
     window.removeEventListener("pointermove", this._onPointerMove);
     window.removeEventListener("pointerdown", this._onPointerDown);
+    if (this.joystickEl) {
+      this.joystickEl.removeEventListener("pointerdown", this._onJoyDown);
+      this.joystickEl.removeEventListener("pointermove", this._onJoyMove);
+      this.joystickEl.removeEventListener("pointerup", this._onJoyEnd);
+      this.joystickEl.removeEventListener("pointercancel", this._onJoyEnd);
+    }
     if (this._selectBlockHandler) {
       this.element.removeEventListener("click", this._selectBlockHandler);
       this._selectBlockHandler = null;
