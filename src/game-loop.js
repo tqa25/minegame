@@ -100,6 +100,7 @@ export default class GameLoop {
     this._resize();
     const h = this.world.topHeight(0, 0);
     this.character.position.set(0, h + 1, 0);
+    this.character.initPosition(h + 1);
     this.blockSelector.pick(
       window.innerWidth / 2,
       window.innerHeight / 2,

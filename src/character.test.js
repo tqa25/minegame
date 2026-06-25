@@ -109,4 +109,27 @@ describe("Character", () => {
     scene.add(character.mesh);
     expect(scene.children).toContain(character.mesh);
   });
+
+  it("initPosition sets physics state and prevents initial fall at correct height", () => {
+    const c = new Character(mockWorld);
+    const h = mockWorld.topHeight(0, 0);
+    const expectedY = h + 1;
+    c.position.set(0, expectedY, 0);
+    c.initPosition(expectedY);
+    c.update(0.016, { x: 0, y: 0 });
+    expect(c.state).toBe("idle");
+    expect(c.position.y).toBeCloseTo(expectedY, 1);
+  });
+
+  it("initPosition keeps character grounded on first frame", () => {
+    const h = 5;
+    const tallWorld = { topHeight: () => h, heightAt: () => h + 1 };
+    const c = new Character(tallWorld);
+    c.position.set(0, h + 1, 0);
+    c.initPosition(h + 1);
+    expect(c.state).toBe("idle");
+    c.update(0.016, { x: 0, y: 0 });
+    expect(c.state).toBe("idle");
+    expect(c.position.y).toBeGreaterThan(h);
+  });
 });

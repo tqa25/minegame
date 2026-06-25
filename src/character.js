@@ -228,6 +228,12 @@ class Character {
   die() {
     this._overlayState = "dead";
   }
+
+  initPosition(y) {
+    this._physicsY = y;
+    this._isGrounded = true;
+    this._verticalVelocity = 0;
+  }
 }
 
 export default Character;
