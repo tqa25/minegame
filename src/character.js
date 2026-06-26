@@ -111,7 +111,7 @@ class Character {
     if (moving) {
       const speed = isRunning ? 6.1 : 3.9;
       moveDir.normalize();
-      const yaw = Math.atan2(moveDir.x, -moveDir.z);
+      const yaw = Math.atan2(-moveDir.x, -moveDir.z);
       this.rig.rotation.y = yaw;
 
       const displacement = moveDir

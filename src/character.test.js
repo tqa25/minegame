@@ -132,4 +132,24 @@ describe("Character", () => {
     expect(c.state).toBe("idle");
     expect(c.position.y).toBeGreaterThan(h);
   });
+
+  it("faces forward direction when moving with moveVector.y = 1", () => {
+    character.initPosition(0);
+    character.update(0.016, { x: 0, y: 1 });
+    const expectedYaw = Math.atan2(
+      -(new THREE.Vector3(-1, 0, -1).normalize().x),
+      -(new THREE.Vector3(-1, 0, -1).normalize().z),
+    );
+    expect(character.rotation.y).toBeCloseTo(expectedYaw, 5);
+  });
+
+  it("faces right direction when moving with moveVector.x = 1", () => {
+    character.initPosition(0);
+    character.update(0.016, { x: 1, y: 0 });
+    const expectedYaw = Math.atan2(
+      -(new THREE.Vector3(1, 0, -1).normalize().x),
+      -(new THREE.Vector3(1, 0, -1).normalize().z),
+    );
+    expect(character.rotation.y).toBeCloseTo(expectedYaw, 5);
+  });
 });
