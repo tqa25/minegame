@@ -195,6 +195,15 @@ body {
   color: #1f1712;
 }
 
+.action {
+  touch-action: manipulation;
+}
+
+.tool,
+.zoom-button {
+  touch-action: manipulation;
+}
+
 .action:active,
 .tool:active,
 .zoom-button:active {

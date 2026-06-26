@@ -116,7 +116,7 @@ export default class GameLoop {
     const hit = this.blockSelector.pick(
       this.lastPointerX,
       this.lastPointerY,
-    );
+    ) || this.blockSelector.getSelectedCell();
     if (!hit) return;
     this.character.attack();
     const { x, y, z } = hit.object.userData;
@@ -128,7 +128,7 @@ export default class GameLoop {
     const hit = this.blockSelector.pick(
       this.lastPointerX,
       this.lastPointerY,
-    );
+    ) || this.blockSelector.getSelectedCell();
     if (!hit) return;
     const { x, y, z, type } = hit.object.userData;
     if (type === "water") return;

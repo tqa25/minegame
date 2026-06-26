@@ -150,6 +150,36 @@ describe("GameLoop", () => {
       expect(removeSpy).toHaveBeenCalledWith(0, 1, 0);
       expect(clearSpy).toHaveBeenCalledOnce();
     });
+
+    it("digSelected falls back to getSelectedCell when pick returns null", () => {
+      const fakeHit = {
+        object: { userData: { x: 2, y: 3, z: 4, type: "dirt" } },
+      };
+      vi.spyOn(gl.blockSelector, "pick").mockReturnValue(null);
+      vi.spyOn(gl.blockSelector, "getSelectedCell").mockReturnValue(fakeHit);
+      const attackSpy = vi.spyOn(gl.character, "attack");
+      const removeSpy = vi.spyOn(gl.world, "removeBlockAt");
+
+      gl.digSelected();
+
+      expect(attackSpy).toHaveBeenCalledOnce();
+      expect(removeSpy).toHaveBeenCalledWith(2, 3, 4);
+    });
+
+    it("buildSelected falls back to getSelectedCell when pick returns null", () => {
+      const fakeHit = {
+        object: { userData: { x: 1, y: 2, z: 3, type: "stone" } },
+      };
+      vi.spyOn(gl.blockSelector, "pick").mockReturnValue(null);
+      vi.spyOn(gl.blockSelector, "getSelectedCell").mockReturnValue(fakeHit);
+      const attackSpy = vi.spyOn(gl.character, "attack");
+      const setBlockSpy = vi.spyOn(gl.world, "setBlock");
+
+      gl.buildSelected();
+
+      expect(attackSpy).toHaveBeenCalledOnce();
+      expect(setBlockSpy).toHaveBeenCalledWith(1, 3, 3, "grass");
+    });
   });
 
   describe("tool selection", () => {
