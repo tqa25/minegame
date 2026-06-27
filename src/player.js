@@ -72,9 +72,13 @@ export default class Player {
     const headBlock = makeBoxPart(0.5, 0.5, 0.5, 0xd6a06f);
     const hair = makeBoxPart(0.54, 0.14, 0.54, 0x3b2518, 0.32);
     const face = makeBoxPart(0.34, 0.12, 0.02, 0x2b1d17, 0.03);
+    const leftEye = makeBoxPart(0.06, 0.06, 0.02, 0xf4f1e8, 0.07);
+    const rightEye = makeBoxPart(0.06, 0.06, 0.02, 0xf4f1e8, 0.07);
     head.position.y = 1.72;
     face.position.z = -0.261;
-    head.add(headBlock, hair, face);
+    leftEye.position.set(-0.09, 0.02, -0.262);
+    rightEye.position.set(0.09, 0.02, -0.262);
+    head.add(headBlock, hair, face, leftEye, rightEye);
 
     const leftArm = makePivotedLimb(0.22, 0.72, 0.24, 0xd6a06f, 1.39);
     const rightArm = makePivotedLimb(0.22, 0.72, 0.24, 0xd6a06f, 1.39);
