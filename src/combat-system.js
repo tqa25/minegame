@@ -1,15 +1,19 @@
-import * as THREE from "three";
+const ATTACK_START_OFFSET = 0.35;
 
-function pointToSegmentDistance(point, start, end) {
-  const segment = end.clone().sub(start);
-  const pointOffset = point.clone().sub(start);
-  const lengthSq = segment.lengthSq();
-  if (lengthSq === 0) {
-    return point.distanceTo(start);
-  }
-  const t = THREE.MathUtils.clamp(pointOffset.dot(segment) / lengthSq, 0, 1);
-  const projection = start.clone().addScaledVector(segment, t);
-  return point.distanceTo(projection);
+function getAttackSpace(point, origin, facing) {
+  const planarPoint = point.clone();
+  const planarOrigin = origin.clone();
+  planarPoint.y = 0;
+  planarOrigin.y = 0;
+
+  const forward = facing.clone().setY(0).normalize();
+  const right = new planarPoint.constructor(-forward.z, 0, forward.x);
+  const offset = planarPoint.sub(planarOrigin);
+
+  return {
+    forwardProgress: offset.dot(forward),
+    lateralDistance: Math.abs(offset.dot(right)),
+  };
 }
 
 export default class CombatSystem {
@@ -18,29 +22,26 @@ export default class CombatSystem {
 
     let hits = 0;
     let defeated = 0;
-    const start = attack.origin.clone();
-    const end = attack.origin
+    const facing = attack.facing.clone().normalize();
+    const start = attack.origin
       .clone()
-      .addScaledVector(attack.facing, attack.dashDistance || attack.range);
+      .addScaledVector(facing, ATTACK_START_OFFSET);
+    const reach = attack.dashDistance || attack.range;
 
     for (const enemy of enemies) {
       if (!enemy.isAlive()) continue;
 
       const enemyPosition = enemy.position.clone();
-      const offset = enemyPosition.clone().sub(start);
-      offset.y = 0;
+      const { forwardProgress, lateralDistance } = getAttackSpace(
+        enemyPosition,
+        start,
+        facing,
+      );
 
-      let inRange = false;
-
-      if (attack.kind === "dashSlash") {
-        inRange = pointToSegmentDistance(enemyPosition, start, end) <= attack.radius;
-      } else {
-        const distance = offset.length();
-        const direction = offset.normalize();
-        const facing = attack.facing.clone().normalize();
-        const alignment = direction.dot(facing);
-        inRange = distance <= attack.range && alignment >= 0.15;
-      }
+      const inRange =
+        forwardProgress >= 0
+        && forwardProgress <= reach
+        && lateralDistance <= attack.radius;
 
       if (!inRange) continue;
       hits += 1;

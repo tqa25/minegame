@@ -8,6 +8,7 @@
   },
   "type": "module",
   "scripts": {
+    "test:combat": "vitest run src/combat-system.test.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "graphify": "graphify src && graphify cluster-only src --no-label",
