@@ -1,9 +1,13 @@
 import World from "./world.js";
-import Character from "./character.js";
+import Player from "./player.js";
 import Camera from "./camera.js";
 import Renderer from "./renderer.js";
 import Input from "./input.js";
 import BlockSelector from "./block-selector.js";
+import Hud from "./hud.js";
+import EnemySpawner from "./enemy-spawner.js";
+import CombatSystem from "./combat-system.js";
+import { PLAYER_RESPAWN_SECONDS } from "./game-config.js";
 
 const BLOCK_LABELS = {
   grass: "Grass",
@@ -24,6 +28,7 @@ export default class GameLoop {
     this._running = false;
     this._lastTime = 0;
     this._elapsedTime = 0;
+    this._respawnTimer = 0;
 
     this._createModules();
     this._bindEvents();
@@ -33,14 +38,18 @@ export default class GameLoop {
   _createModules() {
     this.renderer = new Renderer(this.canvas);
     this.world = new World(this.renderer.scene);
-    this.character = new Character(this.world);
-    this.renderer.addToScene(this.character.mesh);
+    this.player = new Player(this.world);
+    this.character = this.player;
+    this.renderer.addToScene(this.player.mesh);
     this.camera = new Camera(this.canvas, this.domElements.zoomLabel);
     this.input = new Input(document, document.querySelector("#joystick"));
+    this.hud = new Hud(this.domElements);
+    this.enemySpawner = new EnemySpawner(this.world, this.renderer.scene);
+    this.combatSystem = new CombatSystem();
     this.blockSelector = new BlockSelector(
       this.world,
       this.camera.camera,
-      this.character,
+      this.player,
       this.renderer.scene,
       this.domElements.heightLabel,
     );
@@ -49,7 +58,9 @@ export default class GameLoop {
   _bindEvents() {
     this.input.onAction("build", () => this.buildSelected());
     this.input.onAction("dig", () => this.digSelected());
-    this.input.onAction("jump", () => this.character.jump());
+    this.input.onAction("jump", () => this.player.jump());
+    this.input.onAction("attack", () => this.attackEnemies());
+    this.input.onAction("skill", () => this.useDashSlash());
 
     this.input.onPointerMove((x, y) => {
       this.lastPointerX = x;
@@ -77,7 +88,13 @@ export default class GameLoop {
       this.digSelected(),
     );
     this.domElements.jumpBtn.addEventListener("click", () =>
-      this.character.jump(),
+      this.player.jump(),
+    );
+    this.domElements.attackBtn.addEventListener("click", () =>
+      this.attackEnemies(),
+    );
+    this.domElements.skillBtn.addEventListener("click", () =>
+      this.useDashSlash(),
     );
     this.domElements.zoomOutBtn.addEventListener("click", () => {
       this.camera.setZoom(this.camera.getZoom() + 0.8);
@@ -88,8 +105,9 @@ export default class GameLoop {
   }
 
   _updateBlockUI() {
-    this.domElements.blockLabel.textContent =
-      BLOCK_LABELS[this.selectedBlock] || this.selectedBlock;
+    this.hud.updateBlockSelection(
+      BLOCK_LABELS[this.selectedBlock] || this.selectedBlock,
+    );
     for (const btn of this.domElements.toolButtons) {
       btn.classList.toggle("active", btn.dataset.block === this.selectedBlock);
     }
@@ -99,12 +117,16 @@ export default class GameLoop {
     this.world.generate();
     this._resize();
     const h = this.world.topHeight(0, 0);
-    this.character.position.set(0, h + 1, 0);
-    this.character.initPosition(h + 1);
+    this.player.position.set(0, h + 1, 0);
+    this.player.initPosition(h + 1);
+    for (let i = 0; i < 3; i += 1) {
+      this.enemySpawner.spawnNear(this.player.position, this.player.level);
+    }
     this.blockSelector.pick(
       window.innerWidth / 2,
       window.innerHeight / 2,
     );
+    this.hud.updatePlayer(this.player, this.enemySpawner.aliveCount());
   }
 
   _resize() {
@@ -118,7 +140,7 @@ export default class GameLoop {
       this.lastPointerY,
     ) || this.blockSelector.getSelectedCell();
     if (!hit) return;
-    this.character.attack();
+    this.player.basicAttack();
     const { x, y, z } = hit.object.userData;
     this.world.setBlock(x, Math.min(9, y + 1), z, this.selectedBlock);
     this.blockSelector.pick(this.lastPointerX, this.lastPointerY);
@@ -132,10 +154,37 @@ export default class GameLoop {
     if (!hit) return;
     const { x, y, z, type } = hit.object.userData;
     if (type === "water") return;
-    this.character.attack();
+    this.player.basicAttack();
     this.world.removeBlockAt(x, y, z);
     this.blockSelector.clear();
     this.blockSelector.pick(this.lastPointerX, this.lastPointerY);
+  }
+
+  attackEnemies() {
+    const attack = this.player.basicAttack();
+    this.combatSystem.resolvePlayerAttack(
+      this.player,
+      this.enemySpawner.enemies,
+      attack,
+    );
+  }
+
+  useDashSlash() {
+    const attack = this.player.useDashSlash();
+    this.combatSystem.resolvePlayerAttack(
+      this.player,
+      this.enemySpawner.enemies,
+      attack,
+    );
+  }
+
+  _respawnPlayer() {
+    const spawnY = this.world.topHeight(0, 0) + 1;
+    this.player.respawn({ x: 0, y: spawnY, z: 0 });
+    this.enemySpawner.reset();
+    for (let i = 0; i < 3; i += 1) {
+      this.enemySpawner.spawnNear(this.player.position, this.player.level);
+    }
   }
 
   _animate(time) {
@@ -146,13 +195,25 @@ export default class GameLoop {
     this._elapsedTime += delta;
 
     const moveVector = this.input.getMoveVector();
-    this.character.update(delta, moveVector);
+    this.player.update(delta, moveVector);
+    this.enemySpawner.update(delta, this.player);
 
-    this.camera.follow(this.character.position);
+    if (!this.player.isAlive()) {
+      this._respawnTimer += delta;
+      if (this._respawnTimer >= PLAYER_RESPAWN_SECONDS) {
+        this._respawnTimer = 0;
+        this._respawnPlayer();
+      }
+    } else {
+      this._respawnTimer = 0;
+    }
+
+    this.camera.follow(this.player.position);
 
     const t = this._elapsedTime;
     this.renderer.updateSun(t);
     this.renderer.selector.material.opacity = 0.52 + Math.sin(t * 7) * 0.12;
+    this.hud.updatePlayer(this.player, this.enemySpawner.aliveCount());
 
     this.renderer.render(this.camera.camera);
 
@@ -167,6 +228,7 @@ export default class GameLoop {
 
   stop() {
     this._running = false;
+    this.input.destroy();
     if (this._rafId != null) {
       window.cancelAnimationFrame(this._rafId);
       this._rafId = null;

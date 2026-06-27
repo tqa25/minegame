@@ -124,6 +124,20 @@ describe("Input", () => {
       expect(dig).toHaveBeenCalledOnce();
     });
 
+    it("fires attack callback on f keydown", () => {
+      const attack = vi.fn();
+      input.onAction("attack", attack);
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "f" }));
+      expect(attack).toHaveBeenCalledOnce();
+    });
+
+    it("fires skill callback on r keydown", () => {
+      const skill = vi.fn();
+      input.onAction("skill", skill);
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "r" }));
+      expect(skill).toHaveBeenCalledOnce();
+    });
+
     it("supports multiple callbacks per action", () => {
       const a = vi.fn();
       const b = vi.fn();

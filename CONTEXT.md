@@ -16,6 +16,26 @@ _Avoid_: Map, level, scene
 The block-style character the user controls. Owns physics state (gravity, jumping, grounding), animation (limb swing, bob), and an overlay state machine with base states (idle, walking, running, jumping, falling) and overlay states (attacking, hit, dead).
 _Avoid_: Character, avatar, hero
 
+**Enemy**:
+A hostile unit that exists in the World, can spawn on valid ground, pursue the Player at close range, receive damage, and be defeated for Experience.
+_Avoid_: Mob, monster, NPC
+
+**Weapon**:
+The Player's equipped combat item. Determines attack range, damage profile, and combat animation hooks.
+_Avoid_: Item, gear
+
+**Skill**:
+An active combat ability the Player can trigger. Consumes a cooldown and applies a defined combat effect such as damage or movement.
+_Avoid_: Spell, move, power
+
+**Experience**:
+Progress awarded when the Player defeats an Enemy. Accumulates toward Level increases.
+_Avoid_: XP points, score
+
+**Level**:
+The Player's progression tier. Increases when enough Experience is earned and improves the Player's combat effectiveness.
+_Avoid_: Rank, stage
+
 **Camera**:
 The orthographic isometric viewport. Manages zoom, follows the Player, and handles resize.
 _Avoid_: View, perspective

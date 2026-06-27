@@ -21,9 +21,23 @@
 
       <section class="hud hud-top" aria-label="Game status">
         <div class="brand">Minegame Iso</div>
-        <div class="status">
-          <span id="blockLabel">Grass</span>
-          <span id="heightLabel">H: 0</span>
+        <div class="status-grid">
+          <div class="status">
+            <span id="classLabel">Class: Warrior</span>
+            <span id="weaponLabel">Weapon: Iron Sword</span>
+            <span id="levelLabel">Lv 1</span>
+          </div>
+          <div class="status">
+            <span id="healthLabel">HP 100/100</span>
+            <span id="experienceLabel">XP 0/30</span>
+            <span id="enemyLabel">Enemy 0</span>
+          </div>
+          <div class="status">
+            <span id="blockLabel">Grass</span>
+            <span id="heightLabel">H: 0</span>
+            <span id="attackCooldownLabel">Attack Ready</span>
+            <span id="skillCooldownLabel">Dash Ready</span>
+          </div>
         </div>
       </section>
 
@@ -45,8 +59,10 @@
           <div id="stick" class="stick"></div>
         </div>
         <div class="actions">
+          <button id="attackBtn" class="action primary attack" type="button">Attack</button>
+          <button id="skillBtn" class="action skill" type="button">Dash Slash</button>
           <button id="digBtn" class="action" type="button">Dig</button>
-          <button id="buildBtn" class="action primary" type="button">Build</button>
+          <button id="buildBtn" class="action" type="button">Build</button>
           <button id="jumpBtn" class="action" type="button">Hop</button>
         </div>
       </section>

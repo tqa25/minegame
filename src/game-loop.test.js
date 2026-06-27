@@ -32,6 +32,14 @@ describe("GameLoop", () => {
       <span id="blockLabel">Grass</span>
       <span id="heightLabel">H: 0</span>
       <span id="zoomLabel">6.4</span>
+      <span id="classLabel">Class: Warrior</span>
+      <span id="weaponLabel">Weapon: Iron Sword</span>
+      <span id="levelLabel">Lv 1</span>
+      <span id="experienceLabel">XP 0/30</span>
+      <span id="healthLabel">HP 100/100</span>
+      <span id="enemyLabel">Enemy 0</span>
+      <span id="attackCooldownLabel">Attack Ready</span>
+      <span id="skillCooldownLabel">Dash Ready</span>
       <button class="tool active" data-block="grass">Grass</button>
       <button class="tool" data-block="dirt">Dirt</button>
       <button class="tool" data-block="stone">Stone</button>
@@ -39,6 +47,8 @@ describe("GameLoop", () => {
       <button id="buildBtn">Build</button>
       <button id="digBtn">Dig</button>
       <button id="jumpBtn">Jump</button>
+      <button id="attackBtn">Attack</button>
+      <button id="skillBtn">Dash Slash</button>
       <button id="zoomOutBtn">-</button>
       <button id="zoomInBtn">+</button>
       <div id="joystick"><div id="stick"></div></div>
@@ -50,9 +60,19 @@ describe("GameLoop", () => {
       heightLabel: document.getElementById("heightLabel"),
       toolButtons: [...document.querySelectorAll(".tool")],
       zoomLabel: document.getElementById("zoomLabel"),
+      classLabel: document.getElementById("classLabel"),
+      weaponLabel: document.getElementById("weaponLabel"),
+      levelLabel: document.getElementById("levelLabel"),
+      experienceLabel: document.getElementById("experienceLabel"),
+      healthLabel: document.getElementById("healthLabel"),
+      enemyLabel: document.getElementById("enemyLabel"),
+      attackCooldownLabel: document.getElementById("attackCooldownLabel"),
+      skillCooldownLabel: document.getElementById("skillCooldownLabel"),
       buildBtn: document.getElementById("buildBtn"),
       digBtn: document.getElementById("digBtn"),
       jumpBtn: document.getElementById("jumpBtn"),
+      attackBtn: document.getElementById("attackBtn"),
+      skillBtn: document.getElementById("skillBtn"),
       zoomInBtn: document.getElementById("zoomInBtn"),
       zoomOutBtn: document.getElementById("zoomOutBtn"),
     };
@@ -70,11 +90,14 @@ describe("GameLoop", () => {
   describe("constructor", () => {
     it("creates all modules", () => {
       expect(gl.world).toBeDefined();
-      expect(gl.character).toBeDefined();
+      expect(gl.player).toBeDefined();
+      expect(gl.character).toBe(gl.player);
       expect(gl.camera).toBeDefined();
       expect(gl.renderer).toBeDefined();
       expect(gl.input).toBeDefined();
       expect(gl.blockSelector).toBeDefined();
+      expect(gl.enemySpawner).toBeDefined();
+      expect(gl.combatSystem).toBeDefined();
     });
   });
 
@@ -126,7 +149,7 @@ describe("GameLoop", () => {
         object: { userData: { x: 0, y: 1, z: 0, type: "stone" } },
       };
       vi.spyOn(gl.blockSelector, "pick").mockReturnValue(fakeHit);
-      const attackSpy = vi.spyOn(gl.character, "attack");
+      const attackSpy = vi.spyOn(gl.player, "basicAttack");
       const setBlockSpy = vi.spyOn(gl.world, "setBlock");
 
       gl.buildSelected();
@@ -140,7 +163,7 @@ describe("GameLoop", () => {
         object: { userData: { x: 0, y: 1, z: 0, type: "stone" } },
       };
       vi.spyOn(gl.blockSelector, "pick").mockReturnValue(fakeHit);
-      const attackSpy = vi.spyOn(gl.character, "attack");
+      const attackSpy = vi.spyOn(gl.player, "basicAttack");
       const removeSpy = vi.spyOn(gl.world, "removeBlockAt");
       const clearSpy = vi.spyOn(gl.blockSelector, "clear");
 
@@ -157,7 +180,7 @@ describe("GameLoop", () => {
       };
       vi.spyOn(gl.blockSelector, "pick").mockReturnValue(null);
       vi.spyOn(gl.blockSelector, "getSelectedCell").mockReturnValue(fakeHit);
-      const attackSpy = vi.spyOn(gl.character, "attack");
+      const attackSpy = vi.spyOn(gl.player, "basicAttack");
       const removeSpy = vi.spyOn(gl.world, "removeBlockAt");
 
       gl.digSelected();
@@ -172,13 +195,25 @@ describe("GameLoop", () => {
       };
       vi.spyOn(gl.blockSelector, "pick").mockReturnValue(null);
       vi.spyOn(gl.blockSelector, "getSelectedCell").mockReturnValue(fakeHit);
-      const attackSpy = vi.spyOn(gl.character, "attack");
+      const attackSpy = vi.spyOn(gl.player, "basicAttack");
       const setBlockSpy = vi.spyOn(gl.world, "setBlock");
 
       gl.buildSelected();
 
       expect(attackSpy).toHaveBeenCalledOnce();
       expect(setBlockSpy).toHaveBeenCalledWith(1, 3, 3, "grass");
+    });
+
+    it("attackEnemies resolves a basic attack against live enemies", () => {
+      const resolveSpy = vi.spyOn(gl.combatSystem, "resolvePlayerAttack");
+      gl.attackEnemies();
+      expect(resolveSpy).toHaveBeenCalledOnce();
+    });
+
+    it("useDashSlash resolves the skill attack against live enemies", () => {
+      const resolveSpy = vi.spyOn(gl.combatSystem, "resolvePlayerAttack");
+      gl.useDashSlash();
+      expect(resolveSpy).toHaveBeenCalledOnce();
     });
   });
 

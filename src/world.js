@@ -77,6 +77,33 @@ class World {
     return top;
   }
 
+  topBlockType(x, z) {
+    const top = this.topHeight(x, z);
+    return top >= 0 ? this.getBlock(x, top, z) : null;
+  }
+
+  isSurfaceWalkable(x, z) {
+    const top = this.topHeight(x, z);
+    if (top < 0) return false;
+    return this.topBlockType(x, z) !== "water";
+  }
+
+  findSpawnPoint(origin, minDistance = 5, maxDistance = 10, attempts = 24) {
+    for (let i = 0; i < attempts; i += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = minDistance + Math.random() * (maxDistance - minDistance);
+      const x = Math.round(origin.x + Math.cos(angle) * distance);
+      const z = Math.round(origin.z + Math.sin(angle) * distance);
+
+      if (Math.abs(x) > half || Math.abs(z) > half) continue;
+      if (!this.isSurfaceWalkable(x, z)) continue;
+
+      return { x, y: this.topHeight(x, z) + 1, z };
+    }
+
+    return null;
+  }
+
   generate() {
     for (let x = -half; x <= half; x += 1) {
       for (let z = -half; z <= half; z += 1) {

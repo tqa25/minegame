@@ -4,7 +4,13 @@ export default class Input {
     this.joystickEl = joystickEl;
     this.moveVector = { x: 0, y: 0 };
     this.run = false;
-    this.actionHandlers = { build: [], dig: [], jump: [] };
+    this.actionHandlers = {
+      build: [],
+      dig: [],
+      jump: [],
+      attack: [],
+      skill: [],
+    };
     this.pointerMoveHandlers = [];
     this.pointerDownHandlers = [];
     this.selectBlockHandlers = [];
@@ -39,6 +45,8 @@ export default class Input {
     if (event.key === " ") this._fireAction("jump");
     if (event.key === "e") this._fireAction("build");
     if (event.key === "q") this._fireAction("dig");
+    if (event.key === "f") this._fireAction("attack");
+    if (event.key === "r") this._fireAction("skill");
   }
 
   _onKeyUp(event) {
@@ -155,6 +163,12 @@ export default class Input {
     this.pointerMoveHandlers = [];
     this.pointerDownHandlers = [];
     this.selectBlockHandlers = [];
-    this.actionHandlers = { build: [], dig: [], jump: [] };
+    this.actionHandlers = {
+      build: [],
+      dig: [],
+      jump: [],
+      attack: [],
+      skill: [],
+    };
   }
 }

@@ -132,4 +132,23 @@ describe("World", () => {
     const mesh = world.getAllMeshes()[0];
     expect(mesh.userData).toEqual({ x: 3, y: 5, z: 7, type: "wood" });
   });
+
+  it("topBlockType returns the highest block type in a column", () => {
+    world.setBlock(2, 0, 2, "stone");
+    world.setBlock(2, 1, 2, "grass");
+    expect(world.topBlockType(2, 2)).toBe("grass");
+  });
+
+  it("isSurfaceWalkable rejects columns topped with water", () => {
+    world.setBlock(1, 0, 1, "water");
+    expect(world.isSurfaceWalkable(1, 1)).toBe(false);
+  });
+
+  it("findSpawnPoint returns a walkable surface near the origin", () => {
+    world.generate();
+    const spawn = world.findSpawnPoint({ x: 0, z: 0 }, 3, 6, 60);
+    expect(spawn).toBeTruthy();
+    expect(world.isSurfaceWalkable(spawn.x, spawn.z)).toBe(true);
+    expect(spawn.y).toBe(world.topHeight(spawn.x, spawn.z) + 1);
+  });
 });

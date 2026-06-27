@@ -9,7 +9,11 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "graphify": "graphify src && graphify cluster-only src --no-label",
+    "graphify:full": "graphify .",
+    "graphify:update": "graphify update src",
+    "graphify:watch": "graphify watch src"
   },
   "repository": {
     "type": "git",
