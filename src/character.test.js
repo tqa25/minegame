@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import * as THREE from "three";
 import Character from "./character.js";
+import { BASIC_ATTACK } from "./game-config.js";
 
 const mockWorld = {
   topHeight: () => 0,
@@ -173,6 +174,15 @@ describe("Character", () => {
     }
     expect(character.overlayState).toBeNull();
     expect(character.state).toBe("running");
+  });
+
+  it("attack pose swings the right arm forward at mid-strike", () => {
+    character.initPosition(0);
+    character.attack();
+    character.update(BASIC_ATTACK.animationDuration / 2, { x: 0, y: 0 });
+    expect(character.mesh.userData.parts.rightArm.rotation.x).toBeGreaterThan(0);
+    expect(character.mesh.userData.parts.torso.rotation.y).toBeGreaterThan(0);
+    expect(character.mesh.userData.parts.head.rotation.y).toBeGreaterThan(0);
   });
 
   it("faces forward direction when moving with moveVector.y = 1", () => {

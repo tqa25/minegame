@@ -278,20 +278,20 @@ export default class Player {
     if (this._attackTimer > 0) {
       const progress = 1 - this._attackTimer / BASIC_ATTACK.animationDuration;
       const strike = Math.sin(progress * Math.PI);
-      this.parts.rightArm.rotation.x = -1.95 * strike - 0.45;
-      this.parts.rightArm.rotation.z = -0.35 * strike;
-      this.parts.torso.rotation.y = -0.22 * strike;
-      this.parts.head.rotation.y = -0.12 * strike;
-      this.parts.sword.rotation.x = 0.35 * strike;
+      this.parts.rightArm.rotation.x = 1.95 * strike - 0.45;
+      this.parts.rightArm.rotation.z = 0.35 * strike;
+      this.parts.torso.rotation.y = 0.22 * strike;
+      this.parts.head.rotation.y = 0.12 * strike;
+      this.parts.sword.rotation.x = -0.35 * strike;
     } else if (this._skillTimer > 0) {
       const progress = 1 - this._skillTimer / DASH_SLASH.animationDuration;
       const strike = Math.sin(progress * Math.PI);
-      this.parts.rightArm.rotation.x = -2.2 * strike - 0.6;
-      this.parts.leftArm.rotation.x = 0.6 * strike;
-      this.parts.torso.rotation.y = -0.45 * strike;
+      this.parts.rightArm.rotation.x = 2.2 * strike - 0.6;
+      this.parts.leftArm.rotation.x = -0.6 * strike;
+      this.parts.torso.rotation.y = 0.45 * strike;
       this.parts.torso.rotation.x = 0.18 * strike;
-      this.parts.head.rotation.y = -0.2 * strike;
-      this.parts.sword.rotation.x = 0.85 * strike;
+      this.parts.head.rotation.y = 0.2 * strike;
+      this.parts.sword.rotation.x = -0.85 * strike;
     } else {
       this.parts.torso.rotation.y *= 0.75;
     }
