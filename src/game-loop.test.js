@@ -91,7 +91,6 @@ describe("GameLoop", () => {
     it("creates all modules", () => {
       expect(gl.world).toBeDefined();
       expect(gl.player).toBeDefined();
-      expect(gl.character).toBe(gl.player);
       expect(gl.camera).toBeDefined();
       expect(gl.renderer).toBeDefined();
       expect(gl.input).toBeDefined();
@@ -115,8 +114,8 @@ describe("GameLoop", () => {
   });
 
   describe("animate frame", () => {
-    it("calls character.update with moveVector from input", () => {
-      const updateSpy = vi.spyOn(gl.character, "update");
+    it("calls player.update with moveVector from input", () => {
+      const updateSpy = vi.spyOn(gl.player, "update");
       gl.start();
       const animateFn = window.requestAnimationFrame.mock.calls[0][0];
       animateFn(1000);
@@ -126,12 +125,12 @@ describe("GameLoop", () => {
       expect(mv).toEqual({ x: 0, y: 0 });
     });
 
-    it("calls camera.follow with character position", () => {
+    it("calls camera.follow with player position", () => {
       const followSpy = vi.spyOn(gl.camera, "follow");
       gl.start();
       const animateFn = window.requestAnimationFrame.mock.calls[0][0];
       animateFn(1000);
-      expect(followSpy).toHaveBeenCalledWith(gl.character.position);
+      expect(followSpy).toHaveBeenCalledWith(gl.player.position);
     });
 
     it("calls renderer.render with camera", () => {
@@ -144,7 +143,7 @@ describe("GameLoop", () => {
   });
 
   describe("actions", () => {
-    it("buildSelected triggers character.attack, world.setBlock, re-picks", () => {
+    it("buildSelected triggers player.attack, world.setBlock, re-picks", () => {
       const fakeHit = {
         object: { userData: { x: 0, y: 1, z: 0, type: "stone" } },
       };
@@ -158,7 +157,7 @@ describe("GameLoop", () => {
       expect(setBlockSpy).toHaveBeenCalledWith(0, 2, 0, "grass");
     });
 
-    it("digSelected triggers character.attack, world.removeBlockAt, blockSelector.clear", () => {
+    it("digSelected triggers player.attack, world.removeBlockAt, blockSelector.clear", () => {
       const fakeHit = {
         object: { userData: { x: 0, y: 1, z: 0, type: "stone" } },
       };

@@ -393,3 +393,128 @@ describe("Input", () => {
     });
   });
 });
+
+describe("H4: Concurrent action firing", () => {
+  let input;
+
+  beforeEach(() => {
+    document.body.innerHTML = '<div id="joystick"><div id="stick"></div></div>';
+    input = new Input(document, document.querySelector("#joystick"));
+  });
+
+  afterEach(() => {
+    input.destroy();
+  });
+
+  it("movement vector persists while jump fires", () => {
+    const jumpCb = vi.fn();
+    input.onAction("jump", jumpCb);
+
+    // start moving forward
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "w" }));
+    expect(input.getMoveVector().y).toBe(1);
+
+    // press space (jump) — movement should persist
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: " " }));
+    expect(input.getMoveVector().y).toBe(1);
+    expect(jumpCb).toHaveBeenCalledOnce();
+  });
+
+  it("movement vector persists while attack fires", () => {
+    const attackCb = vi.fn();
+    input.onAction("attack", attackCb);
+
+    // start moving forward
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "w" }));
+    // press f (attack)
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "f" }));
+
+    expect(input.getMoveVector().y).toBe(1);
+    expect(attackCb).toHaveBeenCalledOnce();
+  });
+
+  it("jump + attack fire from same keydown batch", () => {
+    const jumpCb = vi.fn();
+    const attackCb = vi.fn();
+    input.onAction("jump", jumpCb);
+    input.onAction("attack", attackCb);
+
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "w" }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: " " }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "f" }));
+
+    expect(input.getMoveVector().y).toBe(1);
+    expect(jumpCb).toHaveBeenCalledOnce();
+    expect(attackCb).toHaveBeenCalledOnce();
+  });
+
+  it("release jump key does not reset movement from w", () => {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "w" }));
+    expect(input.getMoveVector().y).toBe(1);
+
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: " " }));
+    expect(input.getMoveVector().y).toBe(1);
+
+    window.dispatchEvent(new KeyboardEvent("keyup", { key: " " }));
+    expect(input.getMoveVector().y).toBe(1); // w still held
+  });
+
+  it("release w resets y to 0 even if attack just fired", () => {
+    const attackCb = vi.fn();
+    input.onAction("attack", attackCb);
+
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "w" }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "f" }));
+    window.dispatchEvent(new KeyboardEvent("keyup", { key: "w" }));
+
+    expect(input.getMoveVector().y).toBe(0);
+    expect(attackCb).toHaveBeenCalledOnce();
+  });
+});
+
+describe("H5: Key-up resets held direction", () => {
+  let input;
+
+  beforeEach(() => {
+    document.body.innerHTML = '<div id="joystick"><div id="stick"></div></div>';
+    input = new Input(document, document.querySelector("#joystick"));
+  });
+
+  afterEach(() => {
+    input.destroy();
+  });
+
+  it("hold D then tap A (press+release A) — D still held, x should be 1", () => {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "d" }));
+    expect(input.getMoveVector().x).toBe(1);
+
+    // press A while D is still held
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
+    expect(input.getMoveVector().x).toBe(-1); // A takes priority
+
+    // release A — D is still held
+    window.dispatchEvent(new KeyboardEvent("keyup", { key: "a" }));
+    expect(input.getMoveVector().x).toBe(1); // SHOULD be 1, but BUG makes it 0
+  });
+
+  it("hold A then tap D (press+release D) — A still held, x should be -1", () => {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "d" }));
+    window.dispatchEvent(new KeyboardEvent("keyup", { key: "d" }));
+    expect(input.getMoveVector().x).toBe(-1);
+  });
+
+  it("hold W then tap S (press+release S) — W still held, y should be 1", () => {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "w" }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "s" }));
+    window.dispatchEvent(new KeyboardEvent("keyup", { key: "s" }));
+    expect(input.getMoveVector().y).toBe(1);
+  });
+
+  it("hold D + W, release W — D still held, x=1 y=0", () => {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "d" }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "w" }));
+    window.dispatchEvent(new KeyboardEvent("keyup", { key: "w" }));
+    expect(input.getMoveVector()).toEqual({ x: 1, y: 0 });
+  });
+});

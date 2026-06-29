@@ -18,10 +18,11 @@ function getAttackSpace(point, origin, facing) {
 
 export default class CombatSystem {
   resolvePlayerAttack(player, enemies, attack) {
-    if (!attack) return { hits: 0, defeated: 0 };
+    if (!attack) return { hits: 0, defeated: 0, xpAwarded: 0 };
 
     let hits = 0;
     let defeated = 0;
+    let xpAwarded = 0;
     const facing = attack.facing.clone().normalize();
     const start = attack.origin
       .clone()
@@ -47,10 +48,15 @@ export default class CombatSystem {
       hits += 1;
       if (enemy.takeDamage(attack.damage)) {
         defeated += 1;
-        player.gainExperience(enemy.experienceReward);
+        xpAwarded += enemy.experienceReward;
       }
     }
 
-    return { hits, defeated };
+    return { hits, defeated, xpAwarded };
+  }
+
+  resolveEnemyAttack(attack, player) {
+    if (!attack) return false;
+    return player.takeDamage(attack.damage);
   }
 }

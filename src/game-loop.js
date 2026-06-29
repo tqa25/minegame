@@ -7,6 +7,7 @@ import BlockSelector from "./block-selector.js";
 import Hud from "./hud.js";
 import EnemySpawner from "./enemy-spawner.js";
 import CombatSystem from "./combat-system.js";
+import FramePipeline from "./frame-pipeline.js";
 import { PLAYER_RESPAWN_SECONDS } from "./game-config.js";
 
 const BLOCK_LABELS = {
@@ -39,13 +40,12 @@ export default class GameLoop {
     this.renderer = new Renderer(this.canvas);
     this.world = new World(this.renderer.scene);
     this.player = new Player(this.world);
-    this.character = this.player;
     this.renderer.addToScene(this.player.mesh);
     this.camera = new Camera(this.canvas, this.domElements.zoomLabel);
     this.input = new Input(document, document.querySelector("#joystick"));
     this.hud = new Hud(this.domElements);
-    this.enemySpawner = new EnemySpawner(this.world, this.renderer.scene);
     this.combatSystem = new CombatSystem();
+    this.enemySpawner = new EnemySpawner(this.world, this.renderer.scene, this.combatSystem);
     this.blockSelector = new BlockSelector(
       this.world,
       this.camera.camera,
@@ -53,6 +53,14 @@ export default class GameLoop {
       this.renderer.scene,
       this.domElements.heightLabel,
     );
+
+    this._pipeline = new FramePipeline({
+      input: this.input,
+      player: this.player,
+      enemySpawner: this.enemySpawner,
+      camera: this.camera,
+      renderer: this.renderer,
+    });
   }
 
   _bindEvents() {
@@ -162,20 +170,26 @@ export default class GameLoop {
 
   attackEnemies() {
     const attack = this.player.basicAttack();
-    this.combatSystem.resolvePlayerAttack(
+    const result = this.combatSystem.resolvePlayerAttack(
       this.player,
       this.enemySpawner.enemies,
       attack,
     );
+    if (result.xpAwarded > 0) {
+      this.player.gainExperience(result.xpAwarded);
+    }
   }
 
   useDashSlash() {
     const attack = this.player.useDashSlash();
-    this.combatSystem.resolvePlayerAttack(
+    const result = this.combatSystem.resolvePlayerAttack(
       this.player,
       this.enemySpawner.enemies,
       attack,
     );
+    if (result.xpAwarded > 0) {
+      this.player.gainExperience(result.xpAwarded);
+    }
   }
 
   _respawnPlayer() {
@@ -194,9 +208,7 @@ export default class GameLoop {
     this._lastTime = time;
     this._elapsedTime += delta;
 
-    const moveVector = this.input.getMoveVector();
-    this.player.update(delta, moveVector);
-    this.enemySpawner.update(delta, this.player);
+    this._pipeline.process(delta, this._elapsedTime);
 
     if (!this.player.isAlive()) {
       this._respawnTimer += delta;
@@ -208,14 +220,7 @@ export default class GameLoop {
       this._respawnTimer = 0;
     }
 
-    this.camera.follow(this.player.position);
-
-    const t = this._elapsedTime;
-    this.renderer.updateSun(t);
-    this.renderer.selector.material.opacity = 0.52 + Math.sin(t * 7) * 0.12;
     this.hud.updatePlayer(this.player, this.enemySpawner.aliveCount());
-
-    this.renderer.render(this.camera.camera);
 
     this._rafId = window.requestAnimationFrame((t) => this._animate(t));
   }

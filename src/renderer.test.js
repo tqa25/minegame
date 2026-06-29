@@ -86,20 +86,6 @@ describe("Renderer", () => {
     expect(plane.receiveShadow).toBe(true);
   });
 
-  it("scene has selector mesh", () => {
-    const selector = renderer.scene.children.find(
-      (c) => c instanceof THREE.Mesh && c.material instanceof THREE.MeshBasicMaterial,
-    );
-    expect(selector).toBeTruthy();
-  });
-
-  it("selector is initially invisible", () => {
-    const selector = renderer.scene.children.find(
-      (c) => c instanceof THREE.Mesh && c.material instanceof THREE.MeshBasicMaterial,
-    );
-    expect(selector.visible).toBe(false);
-  });
-
   it("blockGeometry is a BoxGeometry(1,1,1)", () => {
     expect(renderer.blockGeometry).toBeInstanceOf(THREE.BoxGeometry);
     const box = new THREE.BoxGeometry(1, 1, 1);
@@ -181,7 +167,4 @@ describe("Renderer", () => {
     expect(renderer.sun).toBeInstanceOf(THREE.DirectionalLight);
   });
 
-  it("exposes selector property", () => {
-    expect(renderer.selector).toBeInstanceOf(THREE.Mesh);
-  });
 });

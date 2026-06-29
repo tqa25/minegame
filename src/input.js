@@ -15,6 +15,9 @@ export default class Input {
     this.pointerDownHandlers = [];
     this.selectBlockHandlers = [];
 
+    this._heldKeys = new Set();
+    this._directionStack = [];
+
     this._onKeyDown = this._onKeyDown.bind(this);
     this._onKeyUp = this._onKeyUp.bind(this);
     this._onPointerMove = this._onPointerMove.bind(this);
@@ -37,11 +40,19 @@ export default class Input {
   }
 
   _onKeyDown(event) {
-    if (event.key === "w" || event.key === "ArrowUp") this.moveVector.y = 1;
-    if (event.key === "s" || event.key === "ArrowDown") this.moveVector.y = -1;
-    if (event.key === "a" || event.key === "ArrowLeft") this.moveVector.x = -1;
-    if (event.key === "d" || event.key === "ArrowRight") this.moveVector.x = 1;
-    if (event.key === "Shift") this.run = true;
+    if (!this._heldKeys.has(event.key)) {
+      if (this._isDirectionKey(event.key)) {
+        this._directionStack.push(event.key);
+      }
+      this._heldKeys.add(event.key);
+    }
+
+    if (event.key === "Shift") {
+      this.run = true;
+    } else if (this._isDirectionKey(event.key)) {
+      this._updateMoveVector();
+    }
+
     if (event.key === " ") this._fireAction("jump");
     if (event.key === "e") this._fireAction("build");
     if (event.key === "q") this._fireAction("dig");
@@ -49,10 +60,33 @@ export default class Input {
     if (event.key === "r") this._fireAction("skill");
   }
 
+  _isDirectionKey(key) {
+    return ["w", "a", "s", "d", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key);
+  }
+
+  _updateMoveVector() {
+    this.moveVector.x = 0;
+    this.moveVector.y = 0;
+
+    for (let i = this._directionStack.length - 1; i >= 0; i--) {
+      const key = this._directionStack[i];
+      if (this.moveVector.x === 0 && (key === "a" || key === "ArrowLeft")) this.moveVector.x = -1;
+      if (this.moveVector.x === 0 && (key === "d" || key === "ArrowRight")) this.moveVector.x = 1;
+      if (this.moveVector.y === 0 && (key === "w" || key === "ArrowUp")) this.moveVector.y = 1;
+      if (this.moveVector.y === 0 && (key === "s" || key === "ArrowDown")) this.moveVector.y = -1;
+    }
+  }
+
   _onKeyUp(event) {
-    if (event.key === "Shift") this.run = false;
-    if (["w", "s", "ArrowUp", "ArrowDown"].includes(event.key)) this.moveVector.y = 0;
-    if (["a", "d", "ArrowLeft", "ArrowRight"].includes(event.key)) this.moveVector.x = 0;
+    this._heldKeys.delete(event.key);
+
+    if (event.key === "Shift") {
+      this.run = false;
+    } else if (this._isDirectionKey(event.key)) {
+      const idx = this._directionStack.indexOf(event.key);
+      if (idx !== -1) this._directionStack.splice(idx, 1);
+      this._updateMoveVector();
+    }
   }
 
   _onPointerMove(event) {
@@ -163,6 +197,7 @@ export default class Input {
     this.pointerMoveHandlers = [];
     this.pointerDownHandlers = [];
     this.selectBlockHandlers = [];
+    this._heldKeys.clear();
     this.actionHandlers = {
       build: [],
       dig: [],

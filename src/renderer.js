@@ -1,12 +1,5 @@
 import * as THREE from "three";
-
-const blockTypes = {
-  grass: { color: 0x5ca95a, roughness: 0.88 },
-  dirt: { color: 0x8b5f37, roughness: 0.94 },
-  stone: { color: 0x81847e, roughness: 0.96 },
-  wood: { color: 0x9a6b3f, roughness: 0.9 },
-  water: { color: 0x4c98b8, roughness: 0.42 },
-};
+import blockTypes from "./block-types.js";
 
 class Renderer {
   constructor(canvas) {
@@ -46,17 +39,6 @@ class Renderer {
         }),
       ]),
     );
-
-    this.selector = new THREE.Mesh(
-      new THREE.BoxGeometry(1.04, 0.08, 1.04),
-      new THREE.MeshBasicMaterial({
-        color: 0xfff1a1,
-        transparent: true,
-        opacity: 0.72,
-      }),
-    );
-    this.selector.visible = false;
-    this._scene.add(this.selector);
 
     this.groundPlane = new THREE.Mesh(
       new THREE.PlaneGeometry(80, 80),

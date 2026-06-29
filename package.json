@@ -11,10 +11,10 @@
     "test:combat": "vitest run src/combat-system.test.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "graphify": "graphify src && graphify cluster-only src --no-label",
-    "graphify:full": "graphify .",
-    "graphify:update": "graphify update src",
-    "graphify:watch": "graphify watch src"
+    "graphify": "graphify . --code-only && graphify cluster-only . --no-label",
+    "graphify:full": "graphify . --code-only",
+    "graphify:update": "graphify update .",
+    "graphify:watch": "graphify watch ."
   },
   "repository": {
     "type": "git",

@@ -3,9 +3,10 @@ import Enemy from "./enemy.js";
 import { ENEMY_SPAWNER } from "./game-config.js";
 
 export default class EnemySpawner {
-  constructor(world, scene) {
+  constructor(world, scene, combatSystem) {
     this.world = world;
     this.scene = scene;
+    this.combatSystem = combatSystem;
     this.enemies = [];
     this._spawnTimer = 0;
   }
@@ -24,7 +25,7 @@ export default class EnemySpawner {
     for (const enemy of this.enemies) {
       const attack = enemy.update(dt, player);
       if (attack) {
-        player.takeDamage(attack.damage);
+        this.combatSystem.resolveEnemyAttack(attack, player);
       }
     }
 

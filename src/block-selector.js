@@ -3,10 +3,10 @@ import * as THREE from "three";
 const MAX_REACH = 8;
 
 class BlockSelector {
-  constructor(world, camera, character, scene, heightLabelEl) {
+  constructor(world, camera, player, scene, heightLabelEl) {
     this._world = world;
     this._camera = camera;
-    this._character = character;
+    this._player = player;
     this._heightLabelEl = heightLabelEl;
 
     this._raycaster = new THREE.Raycaster();
@@ -31,10 +31,10 @@ class BlockSelector {
   }
 
   _isWithinReach(mesh) {
-    const playerBaseY = this._character.position.y;
-    const dx = mesh.position.x - this._character.position.x;
+    const playerBaseY = this._player.position.y;
+    const dx = mesh.position.x - this._player.position.x;
     const dy = mesh.position.y - playerBaseY;
-    const dz = mesh.position.z - this._character.position.z;
+    const dz = mesh.position.z - this._player.position.z;
     return Math.hypot(dx, dy, dz) <= MAX_REACH;
   }
 
