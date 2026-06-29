@@ -15,6 +15,16 @@ describe("Player", () => {
     player = new Player(mockWorld);
   });
 
+  it("invisible wall bug: player clamped to old world size (half=11)", () => {
+    const moveVec = { x: 0, y: 1 };
+    // try to move far along z axis past the old boundary
+    for (let i = 0; i < 300; i++) {
+      player.update(0.016, moveVec);
+    }
+    // should reach past the old wall at -10, all the way to -16
+    expect(player.position.z).toBeLessThan(-15);
+  });
+
   it("constructor creates player rig with correct parts", () => {
     const mesh = player.mesh;
     expect(mesh).toBeInstanceOf(THREE.Group);

@@ -8,7 +8,7 @@ import {
 } from "./game-config.js";
 
 const gravity = 18;
-const half = 11;
+const half = 17;
 
 function makePlayerMaterial(color) {
   return new THREE.MeshStandardMaterial({ color, roughness: 0.72 });
