@@ -8,6 +8,7 @@ import Hud from "./hud.js";
 import EnemySpawner from "./enemy-spawner.js";
 import CombatSystem from "./combat-system.js";
 import FramePipeline from "./frame-pipeline.js";
+import DamageNumbers from "./damage-numbers.js";
 import { PLAYER_RESPAWN_SECONDS } from "./game-config.js";
 
 const BLOCK_LABELS = {
@@ -46,6 +47,9 @@ export default class GameLoop {
     this.hud = new Hud(this.domElements);
     this.combatSystem = new CombatSystem();
     this.enemySpawner = new EnemySpawner(this.world, this.renderer.scene, this.combatSystem);
+    this.enemySpawner.onPlayerHit((damage, position) => {
+      this.damageNumbers.showDamage(position, damage, "#ffffff");
+    });
     this.blockSelector = new BlockSelector(
       this.world,
       this.camera.camera,
@@ -53,6 +57,10 @@ export default class GameLoop {
       this.renderer.scene,
       this.domElements.heightLabel,
     );
+
+    this.damageNumbers = new DamageNumbers(this.renderer.scene);
+
+    this._autoAttack = false;
 
     this._pipeline = new FramePipeline({
       input: this.input,
@@ -117,6 +125,20 @@ export default class GameLoop {
       e.preventDefault();
       this.camera.setZoom(this.camera.getZoom() - 0.8);
     });
+
+    if (this.domElements.autoBtn) {
+      this.domElements.autoBtn.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        this._toggleAutoAttack();
+      });
+    }
+  }
+
+  _toggleAutoAttack() {
+    this._autoAttack = !this._autoAttack;
+    if (this.domElements.autoBtn) {
+      this.domElements.autoBtn.classList.toggle("active", this._autoAttack);
+    }
   }
 
   _updateBlockUI() {
@@ -177,25 +199,43 @@ export default class GameLoop {
 
   attackEnemies() {
     const attack = this.player.basicAttack();
+    if (!attack) return;
     const result = this.combatSystem.resolvePlayerAttack(
       this.player,
       this.enemySpawner.enemies,
       attack,
     );
+    for (const enemy of this.enemySpawner.enemies) {
+      if (enemy.isAlive() && enemy.hitTimer > 0) {
+        this.damageNumbers.showDamage(enemy.position, attack.damage);
+      }
+    }
     if (result.xpAwarded > 0) {
-      this.player.gainExperience(result.xpAwarded);
+      const leveledUp = this.player.gainExperience(result.xpAwarded);
+      if (leveledUp) {
+        this.damageNumbers.showText(this.player.position, "Level Up!", "#ffcc00");
+      }
     }
   }
 
   useDashSlash() {
     const attack = this.player.useDashSlash();
+    if (!attack) return;
     const result = this.combatSystem.resolvePlayerAttack(
       this.player,
       this.enemySpawner.enemies,
       attack,
     );
+    for (const enemy of this.enemySpawner.enemies) {
+      if (enemy.isAlive() && enemy.hitTimer > 0) {
+        this.damageNumbers.showDamage(enemy.position, attack.damage);
+      }
+    }
     if (result.xpAwarded > 0) {
-      this.player.gainExperience(result.xpAwarded);
+      const leveledUp = this.player.gainExperience(result.xpAwarded);
+      if (leveledUp) {
+        this.damageNumbers.showText(this.player.position, "Level Up!", "#ffcc00");
+      }
     }
   }
 
@@ -216,6 +256,12 @@ export default class GameLoop {
     this._elapsedTime += delta;
 
     this._pipeline.process(delta, this._elapsedTime);
+
+    this.damageNumbers.update(delta);
+
+    if (this._autoAttack && this.player.isAlive()) {
+      this.attackEnemies();
+    }
 
     if (!this.player.isAlive()) {
       this._respawnTimer += delta;
@@ -241,6 +287,7 @@ export default class GameLoop {
   stop() {
     this._running = false;
     this.input.destroy();
+    this.damageNumbers.destroy();
     if (this._rafId != null) {
       window.cancelAnimationFrame(this._rafId);
       this._rafId = null;

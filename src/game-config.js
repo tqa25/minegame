@@ -41,14 +41,16 @@ export const ENEMY_BASE = {
   aggroRange: 8.5,
   attackRange: 1.35,
   attackCooldown: 1.1,
-  despawnRange: 18,
+  despawnRange: 28,
+  passiveDeaggroTime: 3.5,
 };
 
 export const ENEMY_SPAWNER = {
-  maxAlive: 4,
+  maxAlive: 6,
   spawnInterval: 1.5,
-  minSpawnDistance: 5,
-  maxSpawnDistance: 10,
+  minSpawnDistance: 6,
+  maxSpawnDistance: 15,
+  passiveChance: 0.3,
 };
 
 export const PLAYER_RESPAWN_SECONDS = 2;

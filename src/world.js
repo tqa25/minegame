@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import blockTypes from "./block-types.js";
 
-const worldSize = 22;
-const maxHeight = 5;
+const worldSize = 34;
+const maxHeight = 6;
 const half = Math.floor(worldSize / 2);
 
 const blockGeometry = new THREE.BoxGeometry(1, 1, 1);

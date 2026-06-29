@@ -17,9 +17,10 @@ function makeBox(width, height, depth, color, yOffset = 0) {
 }
 
 export default class Enemy {
-  constructor(world, level = 1) {
+  constructor(world, level = 1, isPassive = false) {
     this.world = world;
     this.level = level;
+    this.isPassive = isPassive;
     this.rig = new THREE.Group();
     this.parts = {};
     this.state = "idle";
@@ -32,16 +33,20 @@ export default class Enemy {
     this.hitTimer = 0;
     this.deathTimer = 0;
     this.experienceReward = EXPERIENCE_PER_ENEMY;
+    this.aggroTimer = 0;
     this._buildRig();
   }
 
   _buildRig() {
-    const body = makeBox(0.68, 0.82, 0.38, 0x7a2f3d, 1);
-    const head = makeBox(0.54, 0.54, 0.54, 0x79b15f, 1.72);
-    const leftArm = makeBox(0.18, 0.58, 0.18, 0x79b15f, 1.12);
-    const rightArm = makeBox(0.18, 0.58, 0.18, 0x79b15f, 1.12);
-    const leftLeg = makeBox(0.24, 0.62, 0.24, 0x4b252d, 0.42);
-    const rightLeg = makeBox(0.24, 0.62, 0.24, 0x4b252d, 0.42);
+    const color = this.isPassive ? 0x6ba37f : 0x7a2f3d;
+    const headColor = this.isPassive ? 0xa8d5a2 : 0x79b15f;
+    const legColor = this.isPassive ? 0x3d7355 : 0x4b252d;
+    const body = makeBox(0.68, 0.82, 0.38, color, 1);
+    const head = makeBox(0.54, 0.54, 0.54, headColor, 1.72);
+    const leftArm = makeBox(0.18, 0.58, 0.18, headColor, 1.12);
+    const rightArm = makeBox(0.18, 0.58, 0.18, headColor, 1.12);
+    const leftLeg = makeBox(0.24, 0.62, 0.24, legColor, 0.42);
+    const rightLeg = makeBox(0.24, 0.62, 0.24, legColor, 0.42);
     leftArm.position.x = -0.46;
     rightArm.position.x = 0.46;
     leftLeg.position.x = -0.16;
@@ -71,6 +76,7 @@ export default class Enemy {
     this.attackCooldown = Math.max(0, this.attackCooldown - dt);
     this.attackTimer = Math.max(0, this.attackTimer - dt);
     this.hitTimer = Math.max(0, this.hitTimer - dt);
+    this.aggroTimer = Math.max(0, this.aggroTimer - dt);
 
     if (!this.isAlive()) {
       this.state = "dead";
@@ -100,7 +106,9 @@ export default class Enemy {
       return null;
     }
 
-    if (distance <= ENEMY_BASE.attackRange) {
+    const canAggro = !this.isPassive || this.aggroTimer > 0;
+
+    if (distance <= ENEMY_BASE.attackRange && canAggro) {
       this.state = "attacking";
       this.rig.rotation.y = Math.atan2(-toPlayer.x, -toPlayer.z);
       if (this.attackCooldown === 0) {
@@ -109,7 +117,7 @@ export default class Enemy {
         this._animate(dt, 0.4);
         return { damage: this.attackDamage };
       }
-    } else if (distance <= ENEMY_BASE.aggroRange) {
+    } else if (distance <= ENEMY_BASE.aggroRange && canAggro) {
       this.state = "chasing";
       toPlayer.y = 0;
       toPlayer.normalize();
@@ -145,6 +153,9 @@ export default class Enemy {
     if (!this.isAlive()) return false;
     this.health = Math.max(0, this.health - amount);
     this.hitTimer = 0.18;
+    if (this.isPassive) {
+      this.aggroTimer = ENEMY_BASE.passiveDeaggroTime;
+    }
     if (this.health === 0) {
       this.state = "dead";
       return true;

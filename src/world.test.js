@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import * as THREE from "three";
 import World from "./world.js";
 
-const worldSize = 22;
-const maxHeight = 5;
+const worldSize = 34;
+const maxHeight = 6;
 const half = Math.floor(worldSize / 2);
 
 function expectedHeight(x, z) {

@@ -22,6 +22,7 @@ const domElements = {
   skillBtn: document.querySelector("#skillBtn"),
   zoomOutBtn: document.querySelector("#zoomOutBtn"),
   zoomInBtn: document.querySelector("#zoomInBtn"),
+  autoBtn: document.querySelector("#autoBtn"),
 };
 
 const game = new GameLoop(canvas, domElements);

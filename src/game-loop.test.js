@@ -1,3 +1,4 @@
+import * as THREE from "three";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 const mockRender = vi.fn();
@@ -51,6 +52,7 @@ describe("GameLoop", () => {
       <button id="skillBtn">Dash Slash</button>
       <button id="zoomOutBtn">-</button>
       <button id="zoomInBtn">+</button>
+      <button id="autoBtn">Auto</button>
       <div id="joystick"><div id="stick"></div></div>
     `;
 
@@ -73,6 +75,7 @@ describe("GameLoop", () => {
       jumpBtn: document.getElementById("jumpBtn"),
       attackBtn: document.getElementById("attackBtn"),
       skillBtn: document.getElementById("skillBtn"),
+      autoBtn: document.getElementById("autoBtn"),
       zoomInBtn: document.getElementById("zoomInBtn"),
       zoomOutBtn: document.getElementById("zoomOutBtn"),
     };
@@ -224,6 +227,54 @@ describe("GameLoop", () => {
       dirtBtn.click();
       expect(gl.selectedBlock).toBe("dirt");
       expect(domElements.blockLabel.textContent).toBe("Dirt");
+    });
+  });
+
+  describe("auto attack", () => {
+    it("starts disabled", () => {
+      expect(gl._autoAttack).toBe(false);
+    });
+
+    it("toggle toggles _autoAttack and button class", () => {
+      gl._toggleAutoAttack();
+      expect(gl._autoAttack).toBe(true);
+      expect(domElements.autoBtn.classList.contains("active")).toBe(true);
+
+      gl._toggleAutoAttack();
+      expect(gl._autoAttack).toBe(false);
+      expect(domElements.autoBtn.classList.contains("active")).toBe(false);
+    });
+  });
+
+  describe("damage numbers", () => {
+    let origGetContext;
+
+    beforeEach(() => {
+      origGetContext = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = () => ({
+        font: "",
+        textAlign: "",
+        textBaseline: "",
+        shadowColor: "",
+        shadowBlur: 0,
+        fillText: vi.fn(),
+        clearRect: vi.fn(),
+        measureText: () => ({ width: 10 }),
+      });
+    });
+
+    afterEach(() => {
+      HTMLCanvasElement.prototype.getContext = origGetContext;
+    });
+
+    it("creates damageNumbers module", () => {
+      expect(gl.damageNumbers).toBeDefined();
+    });
+
+    it("showDamage and showText do not throw", () => {
+      const pos = new THREE.Vector3(0, 0, 0);
+      expect(() => gl.damageNumbers.showDamage(pos, 15)).not.toThrow();
+      expect(() => gl.damageNumbers.showText(pos, "Test")).not.toThrow();
     });
   });
 });

@@ -52,7 +52,7 @@ export default class CombatSystem {
       }
     }
 
-    return { hits, defeated, xpAwarded };
+    return { hits, defeated, xpAwarded, damage: attack.damage };
   }
 
   resolveEnemyAttack(attack, player) {

@@ -215,6 +215,17 @@ body {
   touch-action: manipulation;
 }
 
+.action.auto-toggle {
+  background: #5a7a5a;
+  color: #e0e8e0;
+  transition: background 0.15s;
+}
+
+.action.auto-toggle.active {
+  background: #d98b4a;
+  color: #1f1712;
+}
+
 .tool,
 .zoom-button {
   touch-action: manipulation;

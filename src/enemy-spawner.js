@@ -9,6 +9,11 @@ export default class EnemySpawner {
     this.combatSystem = combatSystem;
     this.enemies = [];
     this._spawnTimer = 0;
+    this._onPlayerHit = null;
+  }
+
+  onPlayerHit(callback) {
+    this._onPlayerHit = callback;
   }
 
   reset() {
@@ -25,7 +30,10 @@ export default class EnemySpawner {
     for (const enemy of this.enemies) {
       const attack = enemy.update(dt, player);
       if (attack) {
-        this.combatSystem.resolveEnemyAttack(attack, player);
+        const died = this.combatSystem.resolveEnemyAttack(attack, player);
+        if (this._onPlayerHit) {
+          this._onPlayerHit(attack.damage, player.position, died);
+        }
       }
     }
 
@@ -53,7 +61,8 @@ export default class EnemySpawner {
     );
     if (!spawn) return null;
 
-    const enemy = new Enemy(this.world, Math.max(1, level));
+    const isPassive = Math.random() < ENEMY_SPAWNER.passiveChance;
+    const enemy = new Enemy(this.world, Math.max(1, level), isPassive);
     enemy.placeAt(new THREE.Vector3(spawn.x, spawn.y, spawn.z));
     this.enemies.push(enemy);
     this.scene.add(enemy.mesh);
