@@ -23,6 +23,9 @@ const domElements = {
   zoomOutBtn: document.querySelector("#zoomOutBtn"),
   zoomInBtn: document.querySelector("#zoomInBtn"),
   autoBtn: document.querySelector("#autoBtn"),
+  autoFilterBtn: document.querySelector("#autoFilterBtn"),
+  autoRadiusDownBtn: document.querySelector("#autoRadiusDownBtn"),
+  autoRadiusUpBtn: document.querySelector("#autoRadiusUpBtn"),
 };
 
 const game = new GameLoop(canvas, domElements);

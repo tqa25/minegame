@@ -9,7 +9,7 @@ import EnemySpawner from "./enemy-spawner.js";
 import CombatSystem from "./combat-system.js";
 import FramePipeline from "./frame-pipeline.js";
 import DamageNumbers from "./damage-numbers.js";
-import { PLAYER_RESPAWN_SECONDS } from "./game-config.js";
+import { PLAYER_RESPAWN_SECONDS, AUTO_ATTACK, BASIC_ATTACK } from "./game-config.js";
 
 const BLOCK_LABELS = {
   grass: "Grass",
@@ -61,6 +61,9 @@ export default class GameLoop {
     this.damageNumbers = new DamageNumbers(this.renderer.scene);
 
     this._autoAttack = false;
+    this._autoRadius = AUTO_ATTACK.radius;
+    this._autoFilterIndex = 0; // 0=all, 1=aggressive, 2=passive
+    this._autoTarget = null;
 
     this._pipeline = new FramePipeline({
       input: this.input,
@@ -132,12 +135,113 @@ export default class GameLoop {
         this._toggleAutoAttack();
       });
     }
+    if (this.domElements.autoFilterBtn) {
+      this.domElements.autoFilterBtn.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        this._cycleAutoFilter();
+      });
+    }
+    if (this.domElements.autoRadiusDownBtn) {
+      this.domElements.autoRadiusDownBtn.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        this._adjustAutoRadius(-AUTO_ATTACK.radiusStep);
+      });
+    }
+    if (this.domElements.autoRadiusUpBtn) {
+      this.domElements.autoRadiusUpBtn.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        this._adjustAutoRadius(AUTO_ATTACK.radiusStep);
+      });
+    }
   }
 
   _toggleAutoAttack() {
     this._autoAttack = !this._autoAttack;
+    this._autoTarget = null;
+    this._updateAutoUI();
+  }
+
+  _cycleAutoFilter() {
+    this._autoFilterIndex = (this._autoFilterIndex + 1) % 3;
+    this._autoTarget = null;
+    this._updateAutoUI();
+  }
+
+  _adjustAutoRadius(delta) {
+    this._autoRadius = Math.max(
+      AUTO_ATTACK.minRadius,
+      Math.min(AUTO_ATTACK.maxRadius, this._autoRadius + delta),
+    );
+    this._updateAutoUI();
+  }
+
+  _autoFilterLabel() {
+    return ["All", "Aggro", "Passive"][this._autoFilterIndex];
+  }
+
+  _matchesAutoFilter(enemy) {
+    if (this._autoFilterIndex === 0) return true;
+    if (this._autoFilterIndex === 1) return !enemy.isPassive;
+    return enemy.isPassive;
+  }
+
+  _findAutoTarget() {
+    let nearest = null;
+    let nearestDist = Infinity;
+    for (const enemy of this.enemySpawner.enemies) {
+      if (!enemy.isAlive()) continue;
+      if (!this._matchesAutoFilter(enemy)) continue;
+      const pos = enemy.position;
+      const dx = pos.x - this.player.position.x;
+      const dz = pos.z - this.player.position.z;
+      const dist = Math.hypot(dx, dz);
+      if (dist <= this._autoRadius && dist < nearestDist) {
+        nearest = enemy;
+        nearestDist = dist;
+      }
+    }
+    return nearest;
+  }
+
+  _getAutoMoveVector() {
+    const target = this._findAutoTarget();
+    this._autoTarget = target;
+    if (!target) return null;
+
+    const dx = target.position.x - this.player.position.x;
+    const dz = target.position.z - this.player.position.z;
+    const dist = Math.hypot(dx, dz);
+
+    // isometric forward = (-1, -1).normalize(), right = (1, -1).normalize()
+    // Convert world delta to isometric control vector
+    // world_x = moveY * (-0.707) + moveX * (0.707)
+    // world_z = moveY * (-0.707) + moveX * (-0.707)
+    // Solve for moveX, moveY:
+    // moveX = (world_x - world_z) / (2 * 0.707) = (world_x - world_z) / 1.414
+    // moveY = (-world_x - world_z) / (2 * 0.707) = -(world_x + world_z) / 1.414
+    const isoX = (dx - dz) / 1.414;
+    const isoY = -(dx + dz) / 1.414;
+
+    if (dist <= BASIC_ATTACK.range) {
+      // in attack range — stop moving, attack
+      return { x: 0, y: 0 };
+    }
+
+    // normalize so inputStrength ≈ 1
+    const len = Math.hypot(isoX, isoY);
+    if (len < 0.01) return { x: 0, y: 0 };
+    return { x: isoX / len, y: isoY / len };
+  }
+
+  _updateAutoUI() {
     if (this.domElements.autoBtn) {
       this.domElements.autoBtn.classList.toggle("active", this._autoAttack);
+      this.domElements.autoBtn.textContent = this._autoAttack
+        ? `Auto ${this._autoFilterLabel()} R${this._autoRadius}`
+        : "Auto";
+    }
+    if (this.domElements.autoFilterBtn) {
+      this.domElements.autoFilterBtn.textContent = this._autoFilterLabel();
     }
   }
 
@@ -255,13 +359,22 @@ export default class GameLoop {
     this._lastTime = time;
     this._elapsedTime += delta;
 
-    this._pipeline.process(delta, this._elapsedTime);
-
-    this.damageNumbers.update(delta);
+    let moveVectorOverride;
 
     if (this._autoAttack && this.player.isAlive()) {
-      this.attackEnemies();
+      const autoMv = this._getAutoMoveVector();
+      if (autoMv) {
+        moveVectorOverride = autoMv;
+        const target = this._autoTarget;
+        if (target && autoMv.x === 0 && autoMv.y === 0) {
+          this.attackEnemies();
+        }
+      }
     }
+
+    this._pipeline.process(delta, this._elapsedTime, moveVectorOverride);
+
+    this.damageNumbers.update(delta);
 
     if (!this.player.isAlive()) {
       this._respawnTimer += delta;

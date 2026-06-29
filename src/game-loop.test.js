@@ -53,6 +53,9 @@ describe("GameLoop", () => {
       <button id="zoomOutBtn">-</button>
       <button id="zoomInBtn">+</button>
       <button id="autoBtn">Auto</button>
+      <button id="autoFilterBtn">All</button>
+      <button id="autoRadiusDownBtn">R-</button>
+      <button id="autoRadiusUpBtn">R+</button>
       <div id="joystick"><div id="stick"></div></div>
     `;
 
@@ -76,6 +79,9 @@ describe("GameLoop", () => {
       attackBtn: document.getElementById("attackBtn"),
       skillBtn: document.getElementById("skillBtn"),
       autoBtn: document.getElementById("autoBtn"),
+      autoFilterBtn: document.getElementById("autoFilterBtn"),
+      autoRadiusDownBtn: document.getElementById("autoRadiusDownBtn"),
+      autoRadiusUpBtn: document.getElementById("autoRadiusUpBtn"),
       zoomInBtn: document.getElementById("zoomInBtn"),
       zoomOutBtn: document.getElementById("zoomOutBtn"),
     };
@@ -235,14 +241,47 @@ describe("GameLoop", () => {
       expect(gl._autoAttack).toBe(false);
     });
 
-    it("toggle toggles _autoAttack and button class", () => {
+    it("toggle toggles _autoAttack and button text", () => {
       gl._toggleAutoAttack();
       expect(gl._autoAttack).toBe(true);
       expect(domElements.autoBtn.classList.contains("active")).toBe(true);
+      expect(domElements.autoBtn.textContent).toMatch(/Auto All R15/);
 
       gl._toggleAutoAttack();
       expect(gl._autoAttack).toBe(false);
       expect(domElements.autoBtn.classList.contains("active")).toBe(false);
+      expect(domElements.autoBtn.textContent).toBe("Auto");
+    });
+
+    it("cycleAutoFilter cycles filter index and updates button", () => {
+      expect(gl._autoFilterIndex).toBe(0);
+      expect(domElements.autoFilterBtn.textContent).toBe("All");
+
+      gl._cycleAutoFilter();
+      expect(gl._autoFilterIndex).toBe(1);
+      expect(domElements.autoFilterBtn.textContent).toBe("Aggro");
+
+      gl._cycleAutoFilter();
+      expect(gl._autoFilterIndex).toBe(2);
+      expect(domElements.autoFilterBtn.textContent).toBe("Passive");
+
+      gl._cycleAutoFilter();
+      expect(gl._autoFilterIndex).toBe(0);
+    });
+
+    it("adjustAutoRadius clamps within bounds", () => {
+      expect(gl._autoRadius).toBe(15);
+      gl._adjustAutoRadius(3);
+      expect(gl._autoRadius).toBe(18);
+      gl._adjustAutoRadius(-30);
+      expect(gl._autoRadius).toBe(6);
+      gl._adjustAutoRadius(99);
+      expect(gl._autoRadius).toBe(30);
+    });
+
+    it("findAutoTarget returns null when no enemies nearby", () => {
+      gl.enemySpawner.reset();
+      expect(gl._findAutoTarget()).toBeNull();
     });
   });
 

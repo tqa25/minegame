@@ -226,6 +226,12 @@ body {
   color: #1f1712;
 }
 
+.action.auto-sm {
+  background: #4a6a5a;
+  color: #e0e8e0;
+  font-size: 11px;
+}
+
 .tool,
 .zoom-button {
   touch-action: manipulation;

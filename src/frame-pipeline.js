@@ -7,8 +7,8 @@ export default class FramePipeline {
     this._renderer = modules.renderer;
   }
 
-  process(dt, elapsedTime) {
-    const moveVector = this._input.getMoveVector();
+  process(dt, elapsedTime, moveVectorOverride) {
+    const moveVector = moveVectorOverride !== undefined ? moveVectorOverride : this._input.getMoveVector();
     this._player.update(dt, moveVector);
     this._enemySpawner.update(dt, this._player);
     this._camera.follow(this._player.position);

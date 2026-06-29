@@ -54,3 +54,10 @@ export const ENEMY_SPAWNER = {
 };
 
 export const PLAYER_RESPAWN_SECONDS = 2;
+
+export const AUTO_ATTACK = {
+  radius: 15,
+  radiusStep: 3,
+  minRadius: 6,
+  maxRadius: 30,
+};
