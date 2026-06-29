@@ -518,3 +518,67 @@ describe("H5: Key-up resets held direction", () => {
     expect(input.getMoveVector()).toEqual({ x: 1, y: 0 });
   });
 });
+
+describe("H6: Button pointerdown with active joystick", () => {
+  let input;
+  let joyEl;
+  let btn;
+
+  beforeEach(() => {
+    joyEl = document.createElement("div");
+    joyEl.id = "joystick";
+    joyEl.style.width = "120px";
+    joyEl.style.height = "120px";
+    const stick = document.createElement("div");
+    stick.id = "stick";
+    joyEl.appendChild(stick);
+    document.body.appendChild(joyEl);
+
+    btn = document.createElement("button");
+    btn.id = "attackBtn";
+    document.body.appendChild(btn);
+
+    vi.spyOn(joyEl, "getBoundingClientRect").mockReturnValue({
+      left: 10, top: 10, width: 120, height: 120,
+      right: 130, bottom: 130,
+    });
+    Object.defineProperty(joyEl, "clientWidth", { value: 120 });
+    joyEl.setPointerCapture = vi.fn();
+
+    input = new Input(document, joyEl);
+  });
+
+  afterEach(() => {
+    input.destroy();
+    document.body.removeChild(joyEl);
+    document.body.removeChild(btn);
+  });
+
+  it("pointerdown on button fires even when joystick has captured a different pointerId", () => {
+    const cb = vi.fn();
+    btn.addEventListener("pointerdown", cb);
+
+    // Simulate joystick active with pointerId=7
+    const joyDown = new PointerEvent("pointerdown", { pointerId: 7, clientX: 50, clientY: 50 });
+    joyEl.dispatchEvent(joyDown);
+
+    // Simulate button touch with pointerId=8 (different pointer)
+    const btnDown = new PointerEvent("pointerdown", { pointerId: 8, clientX: 200, clientY: 400 });
+    btn.dispatchEvent(btnDown);
+
+    expect(cb).toHaveBeenCalledOnce();
+  });
+
+  it("button click fires while joystick is active", () => {
+    const cb = vi.fn();
+    btn.addEventListener("click", cb);
+
+    const joyDown = new PointerEvent("pointerdown", { pointerId: 7, clientX: 50, clientY: 50 });
+    joyEl.dispatchEvent(joyDown);
+
+    // jsdom click() — synthetic, always fires regardless of pointer capture
+    btn.click();
+
+    expect(cb).toHaveBeenCalledOnce();
+  });
+});

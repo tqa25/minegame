@@ -89,25 +89,32 @@ export default class GameLoop {
 
     window.addEventListener("resize", () => this._resize());
 
-    this.domElements.buildBtn.addEventListener("click", () =>
-      this.buildSelected(),
-    );
-    this.domElements.digBtn.addEventListener("click", () =>
-      this.digSelected(),
-    );
-    this.domElements.jumpBtn.addEventListener("click", () =>
-      this.player.jump(),
-    );
-    this.domElements.attackBtn.addEventListener("click", () =>
-      this.attackEnemies(),
-    );
-    this.domElements.skillBtn.addEventListener("click", () =>
-      this.useDashSlash(),
-    );
-    this.domElements.zoomOutBtn.addEventListener("click", () => {
+    this.domElements.buildBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      this.buildSelected();
+    });
+    this.domElements.digBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      this.digSelected();
+    });
+    this.domElements.jumpBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      this.player.jump();
+    });
+    this.domElements.attackBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      this.attackEnemies();
+    });
+    this.domElements.skillBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      this.useDashSlash();
+    });
+    this.domElements.zoomOutBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
       this.camera.setZoom(this.camera.getZoom() + 0.8);
     });
-    this.domElements.zoomInBtn.addEventListener("click", () => {
+    this.domElements.zoomInBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
       this.camera.setZoom(this.camera.getZoom() - 0.8);
     });
   }
